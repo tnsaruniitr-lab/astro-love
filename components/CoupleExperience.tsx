@@ -88,8 +88,8 @@ export default function CoupleExperience({
           <span>✦</span> Astro-Love · Compatibility <span>✦</span>
         </div>
         <h1 className="font-display text-4xl sm:text-6xl leading-tight mt-3">
-          <span className="gold-text">Two charts,</span>{" "}
-          <span className="text-cream italic">one connection.</span>
+          <span className="gold-text">Check your compatibility</span>{" "}
+          <span className="text-cream italic">with your partner.</span>
         </h1>
         <p className="text-haze mt-4 max-w-md mx-auto">
           Real compatibility from your two birth charts. Every point explained.
