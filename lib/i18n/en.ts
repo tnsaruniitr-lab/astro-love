@@ -84,4 +84,13 @@ export const EN: UIStrings = {
     footer1: "A self-reflection quiz, separate from your astrology chart.",
     footer2: "Astro-Love · Love language",
   },
+
+  pay: {
+    title: "Unlock the full reading",
+    cta: "Unlock everything", price: "$2",
+    perkOnce: "One-time", perkInstant: "Instant", perkAll: "Every reading",
+    compat: "You've seen your score and your type. Open every remaining insight, each with the astrological proof behind it.",
+    natal: "Open every answer your chart holds about love, with the exact placements behind each one.",
+    love: "See how you pair with every other love language, what to ask for, and the science behind it.",
+  },
 };

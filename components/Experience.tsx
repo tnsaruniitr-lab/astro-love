@@ -1,17 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import BirthForm, { type BirthFormValues } from "./BirthForm";
 import ChartWheel from "./ChartWheel";
 import PlanetTable from "./PlanetTable";
 import LoveQuestions from "./LoveQuestions";
 import TopNav from "./TopNav";
+import PaywallGate from "./Paywall";
+import { useUnlocked } from "@/lib/entitlement";
 import { useTheme } from "./ThemeProvider";
 import { useT } from "./LocaleProvider";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import type { ChartFacts } from "@/lib/astro/types";
+
+function chartFromForm(v: BirthFormValues): ChartFacts | null {
+  const p = v.place;
+  if (!p) return null;
+  try {
+    return computeChart({
+      name: v.name || undefined, place: p.label,
+      year: v.year, month: v.month, day: v.day, hour: v.hour, minute: v.minute,
+      timeKnown: v.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
+    });
+  } catch { return null; }
+}
 
 const GLYPH_FONT =
   '"Noto Sans Symbols2","Segoe UI Symbol","Apple Symbols","DejaVu Sans",serif';
@@ -23,9 +37,25 @@ export default function Experience({
   initialChart: ChartFacts;
   initialForm: BirthFormValues;
 }) {
+  const t = useT();
   const [chart, setChart] = useState<ChartFacts>(initialChart);
+  const [form, setForm] = useState<BirthFormValues>(initialForm);
+  const [formKey, setFormKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const unlocked = useUnlocked();
+
+  // Restore the last chart the visitor built (e.g. after returning from
+  // checkout), so the unlocked love answers are about their chart, not the demo.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("am_natal_form");
+      if (!raw) return;
+      const v = JSON.parse(raw) as BirthFormValues;
+      const c = chartFromForm(v);
+      if (c) { setForm(v); setChart(c); setFormKey((k) => k + 1); }
+    } catch { /* ignore */ }
+  }, []);
 
   async function onSubmit(v: BirthFormValues) {
     setLoading(true);
@@ -34,17 +64,11 @@ export default function Experience({
     // A short beat keeps the "Reading the sky…" moment.
     await new Promise((r) => setTimeout(r, 250));
     try {
-      const p = v.place;
-      if (!p) throw new Error("Please choose your birthplace from the list");
-      setChart(
-        computeChart({
-          name: v.name || undefined,
-          place: p.label,
-          year: v.year, month: v.month, day: v.day, hour: v.hour, minute: v.minute,
-          timeKnown: v.timeKnown,
-          lat: p.lat, lon: p.lon, tz: p.tz,
-        }),
-      );
+      const c = chartFromForm(v);
+      if (!c) throw new Error("Please choose your birthplace from the list");
+      setChart(c);
+      setForm(v);
+      try { localStorage.setItem("am_natal_form", JSON.stringify(v)); } catch { /* ignore */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -59,7 +83,7 @@ export default function Experience({
 
       <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 mt-10">
         <div className="lg:col-span-2 lg:sticky lg:top-8 self-start">
-          <BirthForm initial={initialForm} loading={loading} onSubmit={onSubmit} />
+          <BirthForm key={formKey} initial={form} loading={loading} onSubmit={onSubmit} />
           {error && (
             <p className="mt-3 text-sm text-rose/90 text-center">{error}</p>
           )}
@@ -68,7 +92,9 @@ export default function Experience({
 
         <div className="lg:col-span-3 space-y-6">
           <ResultCard chart={chart} />
-          <LoveQuestions chart={chart} />
+          {unlocked
+            ? <LoveQuestions chart={chart} />
+            : <PaywallGate blurb={t.pay.natal} next="/natal" peek={<LoveQuestions chart={chart} />} />}
         </div>
       </div>
 

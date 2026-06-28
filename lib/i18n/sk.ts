@@ -153,5 +153,13 @@ export const SK: UIStrings = {
     },
     "footer1": "Kvíz na sebareflexiu, oddelený od tvojho astrologického horoskopu.",
     "footer2": "Astro-Love · Jazyk lásky"
+  },
+  "pay": {
+    "title": "Odomknite celé čítanie",
+    "cta": "Odomknúť všetko", "price": "$2",
+    "perkOnce": "Jednorazovo", "perkInstant": "Okamžite", "perkAll": "Všetky čítania",
+    "compat": "Videli ste svoje skóre a svoj typ. Otvorte všetky ďalšie postrehy, každý s astrologickým dôkazom.",
+    "natal": "Otvorte všetky odpovede, ktoré váš horoskop ukrýva o láske, s presnými polohami za každou.",
+    "love": "Zistite, ako sa hodíte ku každému inému jazyku lásky, o čo žiadať a čo hovorí veda."
   }
 };
