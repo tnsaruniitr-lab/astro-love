@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
-import NavSegments from "./NavSegments";
+import { useT } from "./LocaleProvider";
+import TopNav from "./TopNav";
 import LoveLangIcon from "./LoveLangIcon";
-import { QUESTIONS, scoreLoveLanguage, compatList, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
+import { fill } from "@/lib/i18n";
+import { QUESTIONS, scoreLoveLanguage, compatList, RESEARCH_NOTE, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
 
 export default function LoveLanguageQuiz() {
+  const t = useT();
   const [answers, setAnswers] = useState<Mode[]>([]);
   const done = answers.length === QUESTIONS.length;
 
@@ -21,21 +24,17 @@ export default function LoveLanguageQuiz() {
 
   return (
     <main className="relative mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
-      <nav className="flex justify-center mb-8">
-        <NavSegments />
-      </nav>
+      <TopNav />
 
       <header className="text-center">
         <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-gold/80">
-          <span>✦</span> Astro-Love · Love Language <span>✦</span>
+          <span>✦</span> {t.ll.eyebrow} <span>✦</span>
         </div>
         <h1 className="font-display text-4xl sm:text-6xl leading-tight mt-3">
-          <span className="gold-text">How you</span>{" "}
-          <span className="text-cream italic">give &amp; receive love.</span>
+          <span className="gold-text">{t.ll.h1a}</span>{" "}
+          <span className="text-cream italic">{t.ll.h1b}</span>
         </h1>
-        <p className="text-haze mt-4 max-w-xl mx-auto">
-          A quick, honest quiz. Eight questions, no birth data needed. Find the way you most feel loved.
-        </p>
+        <p className="text-haze mt-4 max-w-xl mx-auto">{t.ll.subtitle}</p>
       </header>
 
       <div className="mt-10">
@@ -44,9 +43,9 @@ export default function LoveLanguageQuiz() {
         ) : (
           <div className="glass p-6 sm:p-8">
             <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-haze mb-2">
-              <span>Question {step + 1} of {QUESTIONS.length}</span>
+              <span>{fill(t.ll.questionOf, { n: step + 1, total: QUESTIONS.length })}</span>
               {step > 0 && (
-                <button onClick={back} className="text-gold/80 hover:text-gold underline underline-offset-4">Back</button>
+                <button onClick={back} className="text-gold/80 hover:text-gold underline underline-offset-4">{t.ll.back}</button>
               )}
             </div>
             <div className="h-1 rounded-full bg-cream/10 overflow-hidden mb-6">
@@ -71,8 +70,8 @@ export default function LoveLanguageQuiz() {
       </div>
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
-        <p>A self-reflection quiz, separate from your astrology chart.</p>
-        <p className="text-haze/40">Astro-Love · Love language</p>
+        <p>{t.ll.footer1}</p>
+        <p className="text-haze/40">{t.ll.footer2}</p>
       </footer>
     </main>
   );
@@ -80,12 +79,15 @@ export default function LoveLanguageQuiz() {
 
 function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: () => void }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   const { primary, secondary, ranking } = result;
 
   const levelStyle = (level: Level): React.CSSProperties => {
     const c = level === "Effortless" ? pal.gauge.from : level === "Natural fit" ? pal.aspect.harmonious : pal.aspect.tension;
     return { background: `${c}22`, color: c };
   };
+  const levelLabel = (level: Level): string =>
+    level === "Effortless" ? t.ll.levels.effortless : level === "Natural fit" ? t.ll.levels.naturalFit : t.ll.levels.translation;
 
   return (
     <div className="space-y-5">
@@ -103,10 +105,10 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
             <span className="text-gold"><LoveLangIcon mode={primary.key} size={62} /></span>
           </div>
         </div>
-        <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">Your love language</div>
+        <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.ll.yourLoveLanguage}</div>
         <h2 className="font-display text-5xl sm:text-6xl tracking-[-0.02em] leading-[0.98] gold-text mt-2 pb-1">{primary.title}</h2>
         <p className="text-cream/85 text-[15px] max-w-md mx-auto mt-3 leading-relaxed">{primary.desc}</p>
-        <p className="text-haze text-sm max-w-md mx-auto mt-3">With a strong secondary note of <span className="text-cream">{secondary.title}</span>.</p>
+        <p className="text-haze text-sm max-w-md mx-auto mt-3">{fill(t.ll.secondaryNote, { x: secondary.title })}</p>
 
         <div className="mt-7 max-w-md mx-auto space-y-2.5 text-left">
           {ranking.map((r, i) => (
@@ -130,18 +132,18 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="glass p-5">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-gold/90">Ask for it</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-gold/90">{t.ll.askForIt}</div>
           <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.askFor}</p>
         </div>
         <div className="glass p-5">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">Speak it to others</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">{t.ll.speakToOthers}</div>
           <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.speak}</p>
         </div>
       </div>
 
       <div className="glass p-6 sm:p-8">
-        <h3 className="font-display text-xl text-cream text-center mb-1">How you pair with each language</h3>
-        <p className="text-xs text-haze text-center mb-5">When your {primary.title} meets someone who speaks…</p>
+        <h3 className="font-display text-xl text-cream text-center mb-1">{t.ll.howYouPair}</h3>
+        <p className="text-xs text-haze text-center mb-5">{fill(t.ll.howYouPairSub, { lang: primary.short })}</p>
         <ul className="space-y-2.5 max-w-2xl mx-auto">
           {compatList(primary.key).map((row) => (
             <li key={row.mode.key} className="flex items-start gap-3 rounded-xl bg-cream/[0.03] border border-cream/10 px-4 py-3">
@@ -149,7 +151,7 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-cream/90 text-[15px]">{row.mode.title}</span>
-                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0" style={levelStyle(row.level)}>{row.level}</span>
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0" style={levelStyle(row.level)}>{levelLabel(row.level)}</span>
                 </div>
                 <p className="text-[13px] text-haze/85 leading-snug mt-1">{row.why}</p>
               </div>
@@ -158,15 +160,18 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
         </ul>
       </div>
 
+      <p className="text-[11px] text-haze/55 leading-relaxed max-w-xl mx-auto text-center px-2">{RESEARCH_NOTE}</p>
+
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <button onClick={onRetake} className="text-xs uppercase tracking-[0.18em] text-gold/80 hover:text-gold underline underline-offset-4">Retake quiz</button>
-        <Link href="/" className="btn-gold px-7 py-2.5 text-sm">✦ Check love compatibility →</Link>
+        <button onClick={onRetake} className="text-xs uppercase tracking-[0.18em] text-gold/80 hover:text-gold underline underline-offset-4">{t.ll.retake}</button>
+        <Link href="/" className="btn-gold px-7 py-2.5 text-sm">{t.ll.checkCompat}</Link>
       </div>
     </div>
   );
 }
 
 function ShareLang({ title }: { title: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const link = () => (typeof window !== "undefined" ? `${window.location.origin}/love-language/` : "https://astro-love.app/love-language/");
   const text = `My love language is ${title}. What's yours? Find out on Astro-Love.`;
@@ -175,12 +180,12 @@ function ShareLang({ title }: { title: string }) {
 
   return (
     <div className="mt-7">
-      <div className="text-[10px] uppercase tracking-[0.24em] text-haze/85 mb-2.5">Share your result</div>
+      <div className="text-[10px] uppercase tracking-[0.24em] text-haze/85 mb-2.5">{t.ll.shareResult}</div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Chip onClick={() => open(`https://t.me/share/url?url=${encodeURIComponent(link())}&text=${encodeURIComponent(text)}`)}>Telegram</Chip>
         <Chip onClick={() => open(`https://wa.me/?text=${encodeURIComponent(`${text} ${link()}`)}`)}>WhatsApp</Chip>
         <Chip onClick={() => open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link())}`)}>X</Chip>
-        <Chip onClick={copy}>{copied ? "Copied ✓" : "Copy"}</Chip>
+        <Chip onClick={copy}>{copied ? t.compat.share.copied : "Copy"}</Chip>
       </div>
     </div>
   );

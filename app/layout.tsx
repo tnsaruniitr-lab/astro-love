@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { LocaleProvider } from "@/components/LocaleProvider";
 import ThemeFX from "@/components/ThemeFX";
 
 export const metadata: Metadata = {
@@ -16,7 +17,8 @@ export const viewport: Viewport = {
 
 // Apply the saved theme before first paint to avoid a flash.
 // Velvet Rouge is the signature default; a saved choice still wins.
-const BOOT = `(function(){try{var ok=['night','dawn','velvet','peony','twilight'];var t=localStorage.getItem('astro-theme');if(ok.indexOf(t)<0)t='velvet';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','velvet');}})();`;
+const BOOT = `(function(){try{var ok=['night','dawn','velvet','peony','twilight'];var t=localStorage.getItem('astro-theme');if(ok.indexOf(t)<0)t='velvet';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','velvet');}
+try{var L=['en','ru','uk','sk','pl','de','es','ar'];var l=localStorage.getItem('astro-locale');if(L.indexOf(l)<0)l='en';document.documentElement.setAttribute('lang',l);document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -40,7 +42,7 @@ export default function RootLayout({
         <div className="starfield" />
         <ThemeProvider>
           <ThemeFX />
-          {children}
+          <LocaleProvider>{children}</LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

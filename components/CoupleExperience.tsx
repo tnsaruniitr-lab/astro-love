@@ -3,8 +3,10 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
-import NavSegments from "./NavSegments";
+import TopNav from "./TopNav";
 import { useTheme } from "./ThemeProvider";
+import { useT } from "./LocaleProvider";
+import { fill } from "@/lib/i18n";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
@@ -39,6 +41,7 @@ export default function CoupleExperience({
   initialResult: CoupleResult;
 }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   const [a, setA] = useState(initialA);
   const [b, setB] = useState(initialB);
   const [result, setResult] = useState<CoupleResult>(initialResult);
@@ -55,18 +58,18 @@ export default function CoupleExperience({
     try {
       const toInput = (f: BirthFormValues, who: string): ChartInput => {
         const p = f.place;
-        if (!p) throw new Error(`Please choose ${who}'s birthplace from the list`);
+        if (!p) throw new Error(fill(t.compat.choosePlace, { who }));
         return {
           name: f.name || undefined, place: p.label,
           year: f.year, month: f.month, day: f.day, hour: f.hour, minute: f.minute,
           timeKnown: f.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
         };
       };
-      const inA = toInput(a, "Person A");
-      const inB = toInput(b, "Person B");
+      const inA = toInput(a, t.compat.personA);
+      const inB = toInput(b, t.compat.personB);
       const chartA = computeChart(inA);
       const chartB = computeChart(inB);
-      const syn = computeSynastry(chartA, chartB, inA.name ?? "Person A", inB.name ?? "Person B");
+      const syn = computeSynastry(chartA, chartB, inA.name ?? t.compat.personA, inB.name ?? t.compat.personB);
       setResult({ a: chartA, b: chartB, syn });
       setRevealKey((k) => k + 1);
     } catch (e) {
@@ -78,34 +81,30 @@ export default function CoupleExperience({
 
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
-      <nav className="flex justify-center mb-8">
-        <NavSegments />
-      </nav>
+      <TopNav />
 
       <header className="text-center">
         <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-gold/80">
-          <span>✦</span> Astro-Love · Compatibility <span>✦</span>
+          <span>✦</span> {t.compat.eyebrow} <span>✦</span>
         </div>
         <h1 className="font-display text-4xl sm:text-6xl leading-tight mt-3">
-          <span className="gold-text">Check your compatibility</span>{" "}
-          <span className="text-cream italic">with your partner.</span>
+          <span className="gold-text">{t.compat.h1a}</span>{" "}
+          <span className="text-cream italic">{t.compat.h1b}</span>
         </h1>
-        <p className="text-haze mt-4 max-w-md mx-auto">
-          Real compatibility from your two birth charts. Every point explained.
-        </p>
+        <p className="text-haze mt-4 max-w-md mx-auto">{t.compat.subtitle}</p>
       </header>
 
       <div className="grid md:grid-cols-2 gap-5 mt-10">
-        <Panel label="Person A" accent={pal.personA}>
-          <BirthFields value={a} onChange={setA} namePlaceholder="e.g. Anna" />
+        <Panel label={t.compat.personA} accent={pal.personA}>
+          <BirthFields value={a} onChange={setA} namePlaceholder={t.birth.placeholderA} />
         </Panel>
-        <Panel label="Person B" accent={pal.personB}>
-          <BirthFields value={b} onChange={setB} namePlaceholder="e.g. Dmitri" />
+        <Panel label={t.compat.personB} accent={pal.personB}>
+          <BirthFields value={b} onChange={setB} namePlaceholder={t.birth.placeholderB} />
         </Panel>
       </div>
       <div className="flex flex-col items-center mt-5">
         <button onClick={calculate} disabled={loading} className="btn-gold px-10 py-3">
-          {loading ? "Reading the stars…" : "Calculate compatibility"}
+          {loading ? t.compat.calculating : t.compat.calculate}
         </button>
         {error && <p className="mt-3 text-sm text-rose/90">{error}</p>}
       </div>
@@ -113,8 +112,8 @@ export default function CoupleExperience({
       <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
-        <p>For entertainment &amp; self-reflection. Not a substitute for professional advice.</p>
-        <p className="text-haze/40">Astro-Love · synastry scoring · tropical zodiac, whole-sign houses</p>
+        <p>{t.compat.footer1}</p>
+        <p className="text-haze/40">{t.compat.footer2}</p>
       </footer>
     </main>
   );
@@ -135,21 +134,23 @@ function Panel({ label, accent, children }: { label: string; accent: string; chi
 // ───────────────────────── result deck ─────────────────────────
 function Result({ result, staged, forms }: { result: CoupleResult; staged: boolean; forms: { a: BirthFormValues; b: BirthFormValues } }) {
   const { a, b, syn } = result;
+  const t = useT();
 
   const archetype = coupleArchetype(syn);
   const thread = strongestThread(syn);
   const reads = subscoreRead(syn);
 
+  const h = t.compat.hints;
   const cards: { key: string; hint: string; node: React.ReactNode }[] = [
-    { key: "score", hint: "your compatibility score", node: <ScoreCard syn={syn} forms={forms} /> },
-    { key: "type", hint: "your couple type", node: <ArchetypeCard archetype={archetype} /> },
-    ...(thread ? [{ key: "thread", hint: "your strongest thread", node: <ThreadCard thread={thread} /> }] : []),
-    { key: "dims", hint: "your five dimensions", node: <DimensionsCard syn={syn} reads={reads} /> },
-    { key: "tend", hint: "what to tend to", node: <TendCard syn={syn} /> },
-    { key: "flowgrow", hint: "where you flow & grow", node: <FlowGrowCard syn={syn} /> },
-    { key: "wheel", hint: "your synastry wheel", node: <WheelCard a={a} b={b} syn={syn} /> },
-    ...(syn.overlays.length > 0 ? [{ key: "brings", hint: "what you each bring", node: <BringsCard syn={syn} /> }] : []),
-    { key: "shine", hint: "where you shine", node: <ShineCard reads={reads} /> },
+    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} /> },
+    { key: "type", hint: h.type, node: <ArchetypeCard archetype={archetype} /> },
+    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} /> }] : []),
+    { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
+    { key: "tend", hint: h.tend, node: <TendCard syn={syn} /> },
+    { key: "flowgrow", hint: h.flowgrow, node: <FlowGrowCard syn={syn} /> },
+    { key: "wheel", hint: h.wheel, node: <WheelCard a={a} b={b} syn={syn} /> },
+    ...(syn.overlays.length > 0 ? [{ key: "brings", hint: h.brings, node: <BringsCard syn={syn} /> }] : []),
+    { key: "shine", hint: h.shine, node: <ShineCard reads={reads} /> },
   ];
 
   const total = cards.length;
@@ -187,10 +188,10 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     <section className="mt-10 space-y-5">
       {staged && (
         <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze">
-          <span><span key={done} className="count-tick">✦ {done} / {total}</span> revealed</span>
+          <span><span key={done} className="count-tick">✦ {fill(t.compat.revealedOfTotal, { n: done, total })}</span> {t.compat.revealedWord}</span>
           {revealed < total && (
             <button onClick={revealAll} className="text-gold/80 hover:text-gold underline underline-offset-4">
-              Reveal all
+              {t.compat.revealAll}
             </button>
           )}
         </div>
@@ -215,6 +216,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
 
 const FacedownCard = forwardRef<HTMLButtonElement, { hint: string; onReveal: () => void }>(
   function FacedownCard({ hint, onReveal }, ref) {
+    const t = useT();
     return (
       <button
         ref={ref}
@@ -222,7 +224,7 @@ const FacedownCard = forwardRef<HTMLButtonElement, { hint: string; onReveal: () 
         className="facedown glass w-full p-9 sm:p-11 text-center group cursor-pointer transition-transform duration-500 hover:scale-[1.012] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgb(var(--c-ink))]"
       >
         <div className="text-4xl gold-text" style={{ fontFamily: GLYPH_FONT, textShadow: "0 1px 0 rgba(255,255,255,0.12), 0 -1px 1px rgba(0,0,0,0.5)" }}>✦</div>
-        <div className="mt-2 text-[11px] uppercase tracking-[0.24em] text-haze/85">Tap to reveal</div>
+        <div className="mt-2 text-[11px] uppercase tracking-[0.24em] text-haze/85">{t.compat.tapToReveal}</div>
         <div className="font-display text-xl text-cream mt-1 capitalize">{hint}</div>
       </button>
     );
@@ -250,9 +252,10 @@ function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormV
 }
 
 function ArchetypeCard({ archetype }: { archetype: Archetype }) {
+  const t = useT();
   return (
     <div className="glass p-6 sm:p-8 text-center stagger">
-      <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">You two are</div>
+      <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.youTwoAre}</div>
       <h3 className="font-display text-5xl sm:text-6xl tracking-[-0.02em] leading-[0.98] name-reveal mt-2 pb-1">{archetype.name}</h3>
       <p className="text-cream/85 text-[15px] max-w-md mx-auto mt-3 leading-relaxed">{archetype.line}</p>
     </div>
@@ -261,13 +264,14 @@ function ArchetypeCard({ archetype }: { archetype: Archetype }) {
 
 function ThreadCard({ thread }: { thread: Thread }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   const { aspect: a, tightness } = thread;
   const aMeta = BODIES.find((x) => x.key === a.aBody);
   const bMeta = BODIES.find((x) => x.key === a.bBody);
   const vc = pal.aspect[a.valence];
   return (
     <div className="glass p-6 sm:p-8 text-center stagger">
-      <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">Your strongest thread</div>
+      <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.strongestThread}</div>
       <div className="mt-3 flex items-center justify-center gap-3 text-4xl" style={{ fontFamily: GLYPH_FONT }}>
         <span className="planet-pop" style={{ color: pal.personA, animationDelay: "0s" }}>{aMeta?.glyph ?? "↑"}</span>
         <span className="planet-pop" style={{ color: vc, fontSize: "0.8em", animationDelay: "0.12s", filter: `drop-shadow(0 0 6px ${vc})` }}>{ASPECT_GLYPH[a.aspect]}</span>
@@ -275,11 +279,12 @@ function ThreadCard({ thread }: { thread: Thread }) {
       </div>
       <p className="font-display text-xl sm:text-2xl text-cream max-w-md mx-auto mt-4">{a.headline}</p>
       <p className="text-sm text-haze/85 max-w-md mx-auto mt-2 leading-snug">{a.why}</p>
+      <p className="text-[11px] text-haze/55 max-w-md mx-auto mt-2 tabular-nums">{a.proof}</p>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-haze">
         {tightness && (
           <span className="px-2.5 py-1 rounded-full bg-gold/10 text-gold/90 uppercase tracking-wider">{tightness}, {a.orb.toFixed(1)}°</span>
         )}
-        <span>the single strongest contact between your charts.</span>
+        <span>{t.compat.strongestThreadTag}</span>
       </div>
     </div>
   );
@@ -287,10 +292,11 @@ function ThreadCard({ thread }: { thread: Thread }) {
 
 function DimensionsCard({ syn, reads }: { syn: SynastryResult; reads: SubscoreRead }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   const s = syn.subscores;
   return (
     <div className="glass p-6 sm:p-8 stagger">
-      <h3 className="font-display text-xl text-cream text-center">Your five dimensions</h3>
+      <h3 className="font-display text-xl text-cream text-center">{t.compat.fiveDimensions}</h3>
       <p className="text-sm text-haze text-center mt-1">{dimensionsLead(reads)}</p>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 max-w-3xl mx-auto">
         <SubBar label="Emotional" value={s.emotional} color={pal.sub.emotional} index={0} highlight={reads.strong.key === "emotional"} />
@@ -300,8 +306,8 @@ function DimensionsCard({ syn, reads }: { syn: SynastryResult; reads: SubscoreRe
         <SubBar label="Commitment" value={s.commitment} color={pal.sub.commitment} index={4} highlight={reads.strong.key === "commitment"} />
       </div>
       <div className="grid sm:grid-cols-2 gap-3 mt-6 max-w-3xl mx-auto">
-        <ReadBox tone="strong" label={`Strongest, ${reads.strong.label} (${reads.strong.value})`} line={reads.strong.line} />
-        <ReadBox tone="tender" label={`Tenderest, ${reads.tender.label} (${reads.tender.value})`} line={reads.tender.line} />
+        <ReadBox tone="strong" label={`${t.compat.strongestLabel}, ${reads.strong.label} (${reads.strong.value})`} line={reads.strong.line} />
+        <ReadBox tone="tender" label={`${t.compat.tenderestLabel}, ${reads.tender.label} (${reads.tender.value})`} line={reads.tender.line} />
       </div>
     </div>
   );
@@ -318,11 +324,12 @@ function ReadBox({ tone, label, line }: { tone: "strong" | "tender"; label: stri
 }
 
 function TendCard({ syn }: { syn: SynastryResult }) {
+  const t = useT();
   const items: TendItem[] = tendToList(syn);
   return (
     <div className="glass p-6 sm:p-8 stagger">
-      <h3 className="font-display text-xl text-cream text-center">What to tend to</h3>
-      <p className="text-xs text-haze text-center mt-1 mb-5">The places worth a little care, and what helps.</p>
+      <h3 className="font-display text-xl text-cream text-center">{t.compat.tendTitle}</h3>
+      <p className="text-xs text-haze text-center mt-1 mb-5">{t.compat.tendSub}</p>
       <ul className="space-y-3.5 max-w-2xl mx-auto">
         {items.map((it, i) => (
           <li key={i} className="rounded-2xl bg-cream/[0.03] border border-cream/10 p-4">
@@ -339,6 +346,7 @@ function TendCard({ syn }: { syn: SynastryResult }) {
 }
 
 function FlowGrowCard({ syn }: { syn: SynastryResult }) {
+  const t = useT();
   const story = flowGrowStory(syn, 3);
   const [showAll, setShowAll] = useState(false);
   const flow = showAll ? story.allFlow.filter((a) => !isOuter(a)) : story.topFlow;
@@ -346,18 +354,18 @@ function FlowGrowCard({ syn }: { syn: SynastryResult }) {
   const more = story.flowCount + story.growCount;
   return (
     <div className="glass p-6 sm:p-8">
-      <h3 className="font-display text-xl text-cream text-center">Where you flow &amp; grow</h3>
-      <p className="text-xs text-haze text-center mt-1 mb-5">Your spark, split by how it feels. Strongest first.</p>
+      <h3 className="font-display text-xl text-cream text-center">{t.compat.flowGrowTitle}</h3>
+      <p className="text-xs text-haze text-center mt-1 mb-5">{t.compat.flowGrowSub}</p>
       <div className="grid lg:grid-cols-2 gap-6">
-        <AspectGroup title="Where you flow" subtitle="the easy current between you" items={flow} count={story.flowCount} accent="harmonious" />
-        <AspectGroup title="Where you grow" subtitle="friction here is fuel, not a flaw" items={grow} count={story.growCount} accent="tension" />
+        <AspectGroup title={t.compat.whereFlow} subtitle={t.compat.whereFlowSub} items={flow} count={story.flowCount} accent="harmonious" />
+        <AspectGroup title={t.compat.whereGrow} subtitle={t.compat.whereGrowSub} items={grow} count={story.growCount} accent="tension" />
       </div>
 
       {story.gen.length > 0 && (
         <div className="mt-5 flex flex-wrap gap-2 justify-center">
           {story.gen.map((g) => (
             <span key={g.planet} className="text-[11px] text-haze/85 rounded-full border border-cream/10 bg-cream/[0.03] px-3 py-1.5">
-              Plus a {g.planet} streak, {g.count} quiet {g.count === 1 ? "contact" : "contacts"} that add {g.meaning}.
+              {fill(t.compat.plusStreak, { planet: g.planet, count: g.count, contacts: g.count === 1 ? "contact" : "contacts", meaning: g.meaning })}
             </span>
           ))}
         </div>
@@ -366,7 +374,7 @@ function FlowGrowCard({ syn }: { syn: SynastryResult }) {
       {(story.flowCount > 3 || story.growCount > 3) && (
         <div className="text-center mt-5">
           <button onClick={() => setShowAll((s) => !s)} className="text-xs uppercase tracking-[0.18em] text-gold/80 hover:text-gold underline underline-offset-4">
-            {showAll ? "Show less" : `See all ${more} contacts`}
+            {showAll ? t.compat.showLess : fill(t.compat.seeAll, { n: more })}
           </button>
         </div>
       )}
@@ -378,6 +386,7 @@ const isOuter = (a: SynAspect) => ["Uranus", "Neptune", "Pluto"].includes(a.aBod
 
 function AspectGroup({ title, subtitle, items, count, accent }: { title: string; subtitle: string; items: SynAspect[]; count: number; accent: "harmonious" | "tension" }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   const c = pal.aspect[accent];
   return (
     <div>
@@ -388,7 +397,7 @@ function AspectGroup({ title, subtitle, items, count, accent }: { title: string;
       </div>
       <p className="text-[11px] text-haze/85 mb-3">{subtitle}</p>
       {items.length === 0 ? (
-        <p className="text-sm text-haze/70 italic">None this time, and that is perfectly normal.</p>
+        <p className="text-sm text-haze/70 italic">{t.compat.noneNormal}</p>
       ) : (
         <ul className="space-y-2.5">
           {items.map((asp, i) => (<AspectRow key={i} asp={asp} />))}
@@ -413,6 +422,7 @@ function AspectRow({ asp }: { asp: SynAspect }) {
       <span className="flex-1 min-w-0">
         <span className="block text-[13px] text-cream/90 leading-snug">{asp.headline}</span>
         <span className="block text-[11px] text-haze/80 leading-snug mt-0.5">{asp.why}</span>
+        <span className="block text-[10px] text-haze/55 leading-snug mt-1 tabular-nums">{asp.proof}</span>
       </span>
       <span className="text-xs tabular-nums shrink-0" style={{ color: vc }}>+{asp.points.toFixed(1)}</span>
     </li>
@@ -421,18 +431,19 @@ function AspectRow({ asp }: { asp: SynAspect }) {
 
 function WheelCard({ a, b, syn }: { a: ChartFacts; b: ChartFacts; syn: SynastryResult }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   return (
     <div className="glass p-5 sm:p-6">
-      <h3 className="font-display text-xl text-cream text-center mb-3">Your synastry wheel</h3>
+      <h3 className="font-display text-xl text-cream text-center mb-3">{t.compat.wheelTitle}</h3>
       <div className="aspect-square max-w-[560px] mx-auto">
         <SynastryWheel chartA={a} chartB={b} syn={syn} />
       </div>
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-3 text-[11px] text-haze">
-        <Legend c={pal.personA} t={`${syn.names.a} (inner)`} dot />
-        <Legend c={pal.personB} t={`${syn.names.b} (outer)`} dot />
-        <Legend c={pal.aspect.harmonious} t="harmonious" />
-        <Legend c={pal.aspect.tension} t="challenging" />
-        <Legend c={pal.aspect.blending} t="conjunction" />
+        <Legend c={pal.personA} t={`${syn.names.a} (${t.compat.inner})`} dot />
+        <Legend c={pal.personB} t={`${syn.names.b} (${t.compat.outer})`} dot />
+        <Legend c={pal.aspect.harmonious} t={t.compat.harmonious} />
+        <Legend c={pal.aspect.tension} t={t.compat.challenging} />
+        <Legend c={pal.aspect.blending} t={t.compat.conjunction} />
       </div>
     </div>
   );
@@ -440,12 +451,13 @@ function WheelCard({ a, b, syn }: { a: ChartFacts; b: ChartFacts; syn: SynastryR
 
 function BringsCard({ syn }: { syn: SynastryResult }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   const aBrings = syn.overlays.filter((o) => o.from === "A");
   const bBrings = syn.overlays.filter((o) => o.from === "B");
   return (
     <div className="glass p-6 sm:p-8">
-      <h3 className="font-display text-xl text-cream text-center mb-1">What you each bring</h3>
-      <p className="text-xs text-haze text-center mb-5">Where each person's planets light up the other's life.</p>
+      <h3 className="font-display text-xl text-cream text-center mb-1">{t.compat.bringsTitle}</h3>
+      <p className="text-xs text-haze text-center mb-5">{t.compat.bringsSub}</p>
       <div className="grid sm:grid-cols-2 gap-5">
         <BringCol name={syn.names.a} accent={pal.personA} items={aBrings} />
         <BringCol name={syn.names.b} accent={pal.personB} items={bBrings} />
@@ -455,15 +467,16 @@ function BringsCard({ syn }: { syn: SynastryResult }) {
 }
 
 function BringCol({ name, accent, items }: { name: string; accent: string; items: SynOverlay[] }) {
+  const t = useT();
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
         <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: accent }} />
-        <h4 className="font-display text-lg text-cream">{name} brings</h4>
+        <h4 className="font-display text-lg text-cream">{name} {t.compat.brings}</h4>
       </div>
       <p className="text-sm text-cream/85 mb-3">{bringsLead(name, items)}</p>
       {items.length === 0 ? (
-        <p className="text-sm text-haze/70 italic">No house overlays this time.</p>
+        <p className="text-sm text-haze/70 italic">{t.compat.noOverlays}</p>
       ) : (
         <ul className="space-y-2 text-sm text-cream/85">
           {items.map((o, i) => (
@@ -479,18 +492,19 @@ function BringCol({ name, accent, items }: { name: string; accent: string; items
 }
 
 function ShineCard({ reads }: { reads: SubscoreRead }) {
+  const t = useT();
   return (
     <div className="glass p-6 sm:p-8 text-center stagger">
-      <h3 className="font-display text-xl text-cream">Where you shine</h3>
+      <h3 className="font-display text-xl text-cream">{t.compat.shineTitle}</h3>
       <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-left mt-5">
         <div className="rounded-2xl bg-gold/[0.06] border border-gold/20 p-4">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-gold/90">You shine</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-gold/90">{t.compat.youShine}</div>
           <div className="text-cream mt-1.5 leading-snug">
             <span className="text-goldbright">{reads.strong.label}, {reads.strong.value}.</span> {reads.strong.line}
           </div>
         </div>
         <div className="rounded-2xl bg-cream/[0.03] border border-cream/10 p-4">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">One thing to tend</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">{t.compat.oneToTend}</div>
           <div className="text-cream/90 mt-1.5 leading-snug">
             <span className="text-cream">{reads.tender.label}, {reads.tender.value}.</span> {reads.tender.line}
           </div>
@@ -502,6 +516,7 @@ function ShineCard({ reads }: { reads: SubscoreRead }) {
 
 // ───────────────────────── share ─────────────────────────
 function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues } }) {
+  const t = useT();
   const [copied, setCopied] = useState<string | null>(null);
   const card = buildShareCard(syn);
   const caps = buildCaptions(syn);
@@ -544,12 +559,12 @@ function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormVa
 
   return (
     <div className="mt-7">
-      <div className="text-[10px] uppercase tracking-[0.24em] text-haze/85 mb-2.5">Share your score</div>
+      <div className="text-[10px] uppercase tracking-[0.24em] text-haze/85 mb-2.5">{t.compat.share.title}</div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         {channels.map((ch) => (<Chip key={ch.key} onClick={ch.on}>{ch.label}</Chip>))}
-        <Chip onClick={() => copy("link", link())}>{copied === "link" ? "Copied ✓" : "Copy link"}</Chip>
-        <Chip onClick={() => copy("caption", caps.story)}>{copied === "caption" ? "Copied ✓" : "Copy caption"}</Chip>
-        <Chip onClick={saveImage}>Save image</Chip>
+        <Chip onClick={() => copy("link", link())}>{copied === "link" ? t.compat.share.copied : t.compat.share.copyLink}</Chip>
+        <Chip onClick={() => copy("caption", caps.story)}>{copied === "caption" ? t.compat.share.copied : t.compat.share.copyCaption}</Chip>
+        <Chip onClick={saveImage}>{t.compat.share.saveImage}</Chip>
       </div>
     </div>
   );

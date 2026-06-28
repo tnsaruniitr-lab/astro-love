@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const TABS = [
-  { href: "/", label: "Compatibility" },
-  { href: "/natal", label: "Natal chart" },
-  { href: "/love-language", label: "Love language" },
-];
+import { useT } from "./LocaleProvider";
 
 /** Segmented control across the three sections. The active segment reflects
  *  the current page (Compatibility is the landing default). */
 export default function NavSegments() {
+  const t = useT();
+  const TABS = [
+    { href: "/", label: t.nav.compatibility },
+    { href: "/natal", label: t.nav.natal },
+    { href: "/love-language", label: t.nav.loveLanguage },
+  ];
   const pathname = usePathname() || "/";
   const norm = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 
