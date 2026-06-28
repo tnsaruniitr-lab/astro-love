@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
 import TopNav from "./TopNav";
+import CheckoutButton from "./CheckoutButton";
 import { useTheme } from "./ThemeProvider";
 import { useT } from "./LocaleProvider";
 import { fill } from "@/lib/i18n";
@@ -247,6 +248,7 @@ function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormV
         <p className="text-cream/85 max-w-md mx-auto mt-2 text-[15px] leading-relaxed">{scoreMeaning(syn)}</p>
       </div>
       <ShareRow syn={syn} forms={forms} />
+      <div className="mt-6"><CheckoutButton /></div>
     </div>
   );
 }
