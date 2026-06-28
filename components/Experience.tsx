@@ -54,9 +54,10 @@ export default function Experience({
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
       <nav className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 mb-8">
-        <Link href="/" className="text-xs uppercase tracking-[0.2em] text-haze hover:text-gold transition-colors order-2 sm:order-1">
-          ← Love compatibility
-        </Link>
+        <div className="flex items-center gap-4 order-2 sm:order-1 text-xs uppercase tracking-[0.2em]">
+          <Link href="/" className="text-haze hover:text-gold transition-colors">← Love compatibility</Link>
+          <Link href="/love-language" className="text-haze hover:text-gold transition-colors">Love language →</Link>
+        </div>
         <div className="order-1 sm:order-2">
           <ThemeSwatches />
         </div>
