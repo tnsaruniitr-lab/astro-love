@@ -1,9 +1,9 @@
 "use client";
 
 import { forwardRef, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
+import NavSegments from "./NavSegments";
 import { useTheme } from "./ThemeProvider";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
@@ -78,9 +78,8 @@ export default function CoupleExperience({
 
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
-      <nav className="flex items-center justify-center sm:justify-start gap-5 mb-8 text-xs uppercase tracking-[0.2em]">
-        <Link href="/natal" className="text-haze hover:text-gold transition-colors">Natal chart →</Link>
-        <Link href="/love-language" className="text-haze hover:text-gold transition-colors">Love language →</Link>
+      <nav className="flex justify-center mb-8">
+        <NavSegments />
       </nav>
 
       <header className="text-center">
@@ -88,8 +87,8 @@ export default function CoupleExperience({
           <span>✦</span> Astro-Love · Compatibility <span>✦</span>
         </div>
         <h1 className="font-display text-4xl sm:text-6xl leading-tight mt-3">
-          <span className="gold-text">Two charts,</span>{" "}
-          <span className="text-cream italic">one connection.</span>
+          <span className="gold-text">Check your compatibility</span>{" "}
+          <span className="text-cream italic">with your partner.</span>
         </h1>
         <p className="text-haze mt-4 max-w-md mx-auto">
           Real compatibility from your two birth charts. Every point explained.
