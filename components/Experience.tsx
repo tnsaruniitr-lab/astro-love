@@ -5,6 +5,7 @@ import Link from "next/link";
 import BirthForm, { type BirthFormValues } from "./BirthForm";
 import ChartWheel from "./ChartWheel";
 import PlanetTable from "./PlanetTable";
+import LoveQuestions from "./LoveQuestions";
 import ThemeSwatches from "./ThemeSwatches";
 import { useTheme } from "./ThemeProvider";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
@@ -71,8 +72,9 @@ export default function Experience({
           <Science />
         </div>
 
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-6">
           <ResultCard chart={chart} />
+          <LoveQuestions chart={chart} />
         </div>
       </div>
 
