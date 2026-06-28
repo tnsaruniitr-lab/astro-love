@@ -152,3 +152,37 @@ export function scoreLoveLanguage(answers: Mode[]): LoveLanguageResult {
 
   return { primary: ranking[0].mode, secondary: ranking[1].mode, ranking };
 }
+
+// ───────────────────── pairing with other love languages ─────────────────────
+export type Level = "Effortless" | "Natural fit" | "Worth a little translation";
+export interface Compat { level: Level; why: string }
+export interface CompatRow { mode: ModeInfo; level: Level; why: string }
+
+const ckey = (a: Mode, b: Mode) => [a, b].sort().join("|");
+
+const PAIR_COMPAT: Record<string, Compat> = {
+  "words|words": { level: "Effortless", why: "You both thrive on affirmation. Say it often and you will rarely feel unloved." },
+  "acts|words": { level: "Worth a little translation", why: "One needs to hear it, one shows it by doing. Say it out loud as you do the deed." },
+  "gifts|words": { level: "Natural fit", why: "Both love thoughtful gestures. A gift with a heartfelt note lands twice." },
+  "time|words": { level: "Natural fit", why: "Affirmation lands deepest with full attention. Say it, eyes up, phone away." },
+  "touch|words": { level: "Natural fit", why: "One speaks, one reaches. A warm word plus a touch covers you both." },
+  "acts|acts": { level: "Effortless", why: "You both show love by doing. Actions speak, just add a few words now and then." },
+  "acts|gifts": { level: "Natural fit", why: "Both express love through tangible things. A helpful act or a small gift, you each feel it." },
+  "acts|time": { level: "Worth a little translation", why: "One shows love by doing, one wants presence. Do the task together and you meet in the middle." },
+  "acts|touch": { level: "Natural fit", why: "One helps, one holds. Pair practical care with affection so neither feels missed." },
+  "gifts|gifts": { level: "Effortless", why: "You both treasure thoughtful tokens. Keep them meaningful, not just frequent." },
+  "gifts|time": { level: "Worth a little translation", why: "One gives objects, one gives hours. A planned day out is a gift and time in one." },
+  "gifts|touch": { level: "Natural fit", why: "One treasures tokens, one craves closeness. Hand over the gift with a hug." },
+  "time|time": { level: "Effortless", why: "You both crave presence. Protect your time together and you will thrive." },
+  "time|touch": { level: "Effortless", why: "Both connect by being close and unhurried. This comes naturally." },
+  "touch|touch": { level: "Effortless", why: "You both connect through closeness. Easy warmth, just keep words flowing too." },
+};
+
+export function compatFor(a: Mode, b: Mode): Compat {
+  return PAIR_COMPAT[ckey(a, b)] ?? { level: "Natural fit", why: "Two ways of loving that can meet with a little care." };
+}
+
+/** Your primary language paired with each of the five, for the result page. */
+export function compatList(primary: Mode): CompatRow[] {
+  return MODES.map((m) => ({ mode: m, ...compatFor(primary, m.key) }));
+}

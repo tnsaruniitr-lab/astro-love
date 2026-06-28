@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import CityAutocomplete from "./CityAutocomplete";
 import type { BirthPlace } from "@/lib/geo/geocode";
 
@@ -56,7 +57,7 @@ export default function BirthFields({
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="Day">
-          <input type="number" min={1} max={31} className="field w-full px-3 py-2.5 tabular-nums" value={v.day} onChange={(e) => set("day", clamp(+e.target.value, 1, 31))} />
+          <NumberField value={v.day} min={1} max={31} onChange={(n) => set("day", n)} className="field w-full px-3 py-2.5 tabular-nums" />
         </Field>
         <Field label="Month">
           <select className="field w-full px-2 py-2.5" value={v.month} onChange={(e) => set("month", +e.target.value)}>
@@ -66,16 +67,16 @@ export default function BirthFields({
           </select>
         </Field>
         <Field label="Year">
-          <input type="number" min={1900} max={2100} className="field w-full px-3 py-2.5 tabular-nums" value={v.year} onChange={(e) => set("year", clamp(+e.target.value, 1900, 2100))} />
+          <NumberField value={v.year} min={1900} max={2100} onChange={(n) => set("year", n)} className="field w-full px-3 py-2.5 tabular-nums" />
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Hour">
-          <input type="number" min={0} max={23} disabled={!v.timeKnown} className="field w-full px-3 py-2.5 tabular-nums disabled:opacity-40" value={v.hour} onChange={(e) => set("hour", clamp(+e.target.value, 0, 23))} />
+          <NumberField value={v.hour} min={0} max={23} onChange={(n) => set("hour", n)} disabled={!v.timeKnown} className="field w-full px-3 py-2.5 tabular-nums disabled:opacity-40" />
         </Field>
         <Field label="Minute">
-          <input type="number" min={0} max={59} disabled={!v.timeKnown} className="field w-full px-3 py-2.5 tabular-nums disabled:opacity-40" value={v.minute} onChange={(e) => set("minute", clamp(+e.target.value, 0, 59))} />
+          <NumberField value={v.minute} min={0} max={59} onChange={(n) => set("minute", n)} disabled={!v.timeKnown} className="field w-full px-3 py-2.5 tabular-nums disabled:opacity-40" />
         </Field>
       </div>
 
@@ -93,5 +94,44 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="block text-[11px] uppercase tracking-[0.16em] text-haze/80 mb-1.5">{label}</span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Numeric field you can actually TYPE into. We keep the in-progress text local
+ * and only clamp to [min,max] on blur, so typing "2000" into a year (min 1900)
+ * is no longer snapped to 1900 on the first keystroke. inputMode=numeric brings
+ * up the number keypad on mobile.
+ */
+function NumberField({
+  value, min, max, onChange, className, disabled,
+}: {
+  value: number; min: number; max: number; onChange: (n: number) => void; className?: string; disabled?: boolean;
+}) {
+  const [text, setText] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+
+  // Sync from outside (defaults, shared-link prefill, reset) when not editing.
+  useEffect(() => {
+    if (!editing) setText(String(value));
+  }, [value, editing]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      disabled={disabled}
+      className={className}
+      value={text}
+      onFocus={(e) => { setEditing(true); e.currentTarget.select(); }}
+      onChange={(e) => setText(e.target.value.replace(/[^0-9]/g, ""))}
+      onBlur={() => {
+        setEditing(false);
+        const n = text === "" ? min : clamp(parseInt(text, 10), min, max);
+        setText(String(n));
+        onChange(n);
+      }}
+    />
   );
 }
