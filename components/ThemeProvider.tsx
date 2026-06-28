@@ -10,16 +10,16 @@ interface ThemeCtx {
 }
 
 const Ctx = createContext<ThemeCtx>({
-  theme: "night",
+  theme: "velvet",
   setTheme: () => {},
-  palette: PALETTES.night,
+  palette: PALETTES.velvet,
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Start at "night" on both server and first client render → no hydration
+  // Start at "velvet" on both server and first client render → no hydration
   // mismatch. The inline boot script in layout already set the correct CSS
   // theme (data-theme) before paint; we sync the JS palette right after mount.
-  const [theme, setThemeState] = useState<ThemeKey>("night");
+  const [theme, setThemeState] = useState<ThemeKey>("velvet");
 
   useEffect(() => {
     const attr = document.documentElement.getAttribute("data-theme") as ThemeKey | null;
