@@ -74,13 +74,13 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    prompt: "Your partner quietly handles something stressful for you, the bills, a booking, a chore. What means the most is…",
+    prompt: "You just got the best news, a promotion, an offer, a win. What you want from your partner first is…",
     options: [
-      { mode: "acts", label: "the plain relief that they just took care of it" },
-      { mode: "words", label: "hearing them say they did it because they love you" },
-      { mode: "time", label: "that it frees the two of you up to relax together" },
-      { mode: "touch", label: "pulling them into a grateful hug for it" },
-      { mode: "gifts", label: "the thought behind it, that they planned it just for you" },
+      { mode: "words", label: "to hear them rave about how much you deserve it" },
+      { mode: "touch", label: "to be swept into a hug and spun around" },
+      { mode: "time", label: "to drop everything and spend the whole evening celebrating" },
+      { mode: "gifts", label: "to find a small gift waiting to mark the moment" },
+      { mode: "acts", label: "to have them handle dinner and the plans so you can soak it in" },
     ],
   },
   {
@@ -104,23 +104,23 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    prompt: "On a genuinely hard day you most want…",
+    prompt: "After a fight, what helps you feel close again is when they…",
     options: [
-      { mode: "touch", label: "to be held, words optional" },
-      { mode: "words", label: "to hear 'you've got this, I believe in you'" },
-      { mode: "acts", label: "someone to just take a task off your plate" },
-      { mode: "time", label: "unhurried time to talk it all through" },
-      { mode: "gifts", label: "a thoughtful little gift that says they were thinking of you" },
+      { mode: "touch", label: "reach for your hand before either of you finds the words" },
+      { mode: "words", label: "say a real sorry and remind you what they love about you" },
+      { mode: "acts", label: "quietly start setting things right between you" },
+      { mode: "time", label: "sit with you and talk it all the way through" },
+      { mode: "gifts", label: "leave a small peace offering that says they were thinking of you" },
     ],
   },
   {
     prompt: "You are most likely to show love by…",
     options: [
-      { mode: "acts", label: "doing practical things to make their life easier" },
+      { mode: "acts", label: "quietly fixing, fetching and sorting things off their list" },
       { mode: "words", label: "telling and texting them how much they mean to you" },
       { mode: "gifts", label: "picking out something they'd never buy themselves" },
       { mode: "time", label: "clearing your schedule to be fully present" },
-      { mode: "touch", label: "being physically affectionate and close" },
+      { mode: "touch", label: "reaching for them often, a hug, a hand, sitting close" },
     ],
   },
   {
@@ -144,13 +144,13 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    prompt: "Your partner says 'I love you' best when they…",
+    prompt: "You're sick in bed and miserable. The care that lands best is your partner…",
     options: [
-      { mode: "words", label: "actually say it, often and specifically" },
-      { mode: "touch", label: "show it through touch and closeness" },
-      { mode: "acts", label: "show up and do, rather than just say" },
-      { mode: "gifts", label: "mark it with something thoughtful" },
-      { mode: "time", label: "give you their full, undivided attention" },
+      { mode: "acts", label: "bringing soup, meds and water without being asked" },
+      { mode: "touch", label: "curling up beside you so you're not alone in it" },
+      { mode: "words", label: "checking in softly with 'I've got you, just rest'" },
+      { mode: "time", label: "clearing their day to stay close by" },
+      { mode: "gifts", label: "turning up with a warm blanket and something to cheer you up" },
     ],
   },
   {
@@ -174,13 +174,13 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    prompt: "Looking back, your happiest relationship moments were mostly about…",
+    prompt: "When you scroll past a couple online and think 'I want that,' it's because they…",
     options: [
-      { mode: "time", label: "time together, fully present" },
-      { mode: "touch", label: "physical closeness and affection" },
-      { mode: "words", label: "things that were said, out loud or in writing" },
-      { mode: "acts", label: "the ways they showed up and took care of things" },
-      { mode: "gifts", label: "meaningful things given and received" },
+      { mode: "touch", label: "are always tangled together, hands, hugs, no space between them" },
+      { mode: "words", label: "clearly adore each other out loud, gushing in every caption" },
+      { mode: "acts", label: "show up for each other in the small, practical ways" },
+      { mode: "time", label: "do everything together and look genuinely glad about it" },
+      { mode: "gifts", label: "surprise each other with thoughtful little gifts" },
     ],
   },
 ];
