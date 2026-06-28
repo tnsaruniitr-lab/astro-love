@@ -17,7 +17,7 @@ export default function ThemeSwatches() {
             type="button"
             role="radio"
             aria-checked={active}
-            title={`${t.label} — ${t.hint}`}
+            title={`${t.label}, ${t.hint}`}
             onClick={() => setTheme(t.key as ThemeKey)}
             className={`group inline-flex items-center gap-2 rounded-full pl-1.5 pr-3 py-1 border transition-all ${
               active

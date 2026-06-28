@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Motion vocabulary (theme-agnostic): one slow, weighted "velvet" easing. */
+:root {
+  --ease-velvet: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-velvet-soft: cubic-bezier(0.33, 1, 0.4, 1);
+  --ease-sheen: cubic-bezier(0.45, 0, 0.15, 1);
+  --dur-reveal: 760ms;
+}
+
 /* ───────────────────────── theme tokens ───────────────────────── */
 :root,
 [data-theme="night"] {
@@ -105,19 +113,26 @@
   --c-haze: 201 154 166;
   --c-cream: 244 224 227;
 
-  --page-bg: #160a12;
+  --page-bg: #150812;
+  /* 4th radial = a true vignette so panels read as lit on velvet. */
   --cosmos-bg:
-    radial-gradient(1100px 800px at 78% -10%, rgba(170, 40, 70, 0.32), transparent 60%),
-    radial-gradient(900px 700px at 12% 18%, rgba(120, 30, 60, 0.30), transparent 55%),
-    radial-gradient(1200px 900px at 50% 120%, rgba(90, 30, 60, 0.30), transparent 60%),
-    linear-gradient(180deg, #1c0b15 0%, #19090f 50%, #140810 100%);
+    radial-gradient(1200px 820px at 78% -12%, rgba(190, 46, 80, 0.34), transparent 60%),
+    radial-gradient(900px 720px at 10% 16%, rgba(120, 30, 62, 0.30), transparent 55%),
+    radial-gradient(1100px 900px at 50% 122%, rgba(96, 30, 64, 0.32), transparent 60%),
+    radial-gradient(140% 120% at 50% 40%, transparent 58%, rgba(8, 3, 7, 0.55) 100%),
+    linear-gradient(180deg, #1e0b16 0%, #170810 52%, #110509 100%);
   --star-opacity: 0;
   --aurora-opacity: 0;
   --aurora-bg: none;
 
-  --glass-bg: linear-gradient(180deg, rgba(70, 28, 46, 0.55), rgba(40, 16, 28, 0.5));
-  --glass-border: rgba(231, 173, 148, 0.18);
-  --glass-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Carved glass over wine: warmer 3-stop fall-off + layered inner light. */
+  --glass-bg: linear-gradient(180deg, rgba(82, 32, 52, 0.58) 0%, rgba(48, 18, 32, 0.52) 60%, rgba(36, 14, 26, 0.5) 100%);
+  --glass-border: rgba(231, 173, 148, 0.22);
+  --glass-shadow:
+    0 34px 80px -36px rgba(0, 0, 0, 0.92),
+    inset 0 2px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 40px -12px rgba(190, 46, 80, 0.18),
+    inset 0 1px 0 rgba(243, 201, 176, 0.22);
   --glass-blur: 14px;
 
   --field-bg: rgba(30, 12, 22, 0.6);
@@ -129,7 +144,7 @@
   --btn-text: #2a0f17;
   --btn-shadow: 0 12px 30px -12px rgba(231, 140, 150, 0.5);
 
-  --gold-grad: linear-gradient(180deg, #f3c9b0 0%, #e7ad94 55%, #d68f8a 100%);
+  --gold-grad: linear-gradient(105deg, #f3c9b0 0%, #e7ad94 55%, #d68f8a 100%);
   --hairline: rgba(231, 173, 148, 0.14);
 }
 
@@ -239,6 +254,18 @@ body {
   background: var(--cosmos-bg);
   transition: background 0.6s ease;
 }
+/* Faint "expensive print" grain. Static, no blend, desktop-only (perf). */
+@media (min-width: 641px) {
+  .cosmos-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size: 200px 200px;
+  }
+}
 
 .starfield {
   position: fixed;
@@ -283,12 +310,24 @@ body {
 
 /* ───────────────────────── components ───────────────────────── */
 .glass {
+  position: relative;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 22px;
   box-shadow: var(--glass-shadow);
   backdrop-filter: blur(var(--glass-blur));
   transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+}
+/* A foil hairline catching light along the top edge (jewel-box cue). */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 22px 22px 0 0;
+  background: linear-gradient(90deg, transparent, rgb(var(--c-goldbright) / 0.55) 30%, rgba(255, 255, 255, 0.6) 50%, rgb(var(--c-goldbright) / 0.55) 70%, transparent);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .hairline { border-top: 1px solid var(--hairline); }
@@ -344,27 +383,75 @@ body {
 .fade-up { animation: fadeUp 0.7s ease both; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Card-deck reveal: a card flips/rises in when the user taps it open. */
-.reveal-in { animation: revealIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* ── Card-deck reveal: "light on velvet" ── */
+.deck-slot { perspective: 1400px; }
+.reveal-in { animation: revealIn 0.6s var(--ease-velvet) both; }
 @keyframes revealIn {
   from { opacity: 0; transform: translateY(16px) scale(0.97); filter: blur(3px); }
   to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
-/* Facedown teaser: a soft gold sheen drifts across to invite the tap. */
-.facedown { position: relative; overflow: hidden; }
+/* The tapped slot turns face-up: a subtle 14deg rotateY, blur to sharp. */
+.card-turn { transform-origin: 50% 50%; backface-visibility: hidden; animation: cardTurn var(--dur-reveal) var(--ease-velvet) both; }
+@keyframes cardTurn {
+  0% { opacity: 0; transform: rotateY(-14deg) translateY(16px) scale(0.965); filter: blur(5px) saturate(0.85); }
+  55% { opacity: 1; filter: blur(0) saturate(1); }
+  100% { opacity: 1; transform: rotateY(0) translateY(0) scale(1); }
+}
+
+/* Inner content arrives in quiet sequence. */
+.stagger > * { opacity: 0; animation: contentRise 560ms var(--ease-velvet-soft) both; }
+.stagger > *:nth-child(1) { animation-delay: 120ms; }
+.stagger > *:nth-child(2) { animation-delay: 210ms; }
+.stagger > *:nth-child(3) { animation-delay: 300ms; }
+.stagger > *:nth-child(4) { animation-delay: 390ms; }
+.stagger > *:nth-child(5) { animation-delay: 480ms; }
+@keyframes contentRise { from { opacity: 0; transform: translateY(10px); filter: blur(2px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+
+/* Archetype name: one slow specular wipe across the resting foil. */
+.name-reveal {
+  background:
+    linear-gradient(100deg, transparent 30%, rgb(var(--c-cream) / 0.9) 50%, transparent 70%),
+    var(--gold-grad);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  background-size: 250% 100%, 100% 100%;
+  animation: nameSheen 1.2s var(--ease-sheen) 0.45s 1 both;
+}
+@keyframes nameSheen { 0% { background-position: -150% 0, 0 0; } 100% { background-position: 250% 0, 0 0; } }
+
+/* Score: a single candlelight bloom on landing. */
+.score-bloom {
+  position: absolute; inset: 0; margin: auto; width: 180px; height: 180px; border-radius: 9999px;
+  background: radial-gradient(circle, rgb(var(--c-rose) / 0.45) 0%, rgb(var(--c-gold) / 0.22) 40%, transparent 70%);
+  pointer-events: none; z-index: -1; animation: scoreBloom 1100ms var(--ease-velvet) both;
+}
+@keyframes scoreBloom { 0% { opacity: 0; transform: scale(0.6); } 40% { opacity: 0.9; } 100% { opacity: 0; transform: scale(1.5); } }
+
+/* Strongest dimension bar: one soft gold pulse as it lands. */
+.bar-glow { animation: barGlow 900ms var(--ease-velvet) 700ms both; }
+@keyframes barGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(231, 173, 148, 0); } 45% { box-shadow: 0 0 14px 1px rgba(231, 173, 148, 0.45); } }
+
+/* Progress counter tick. */
+.count-tick { display: inline-block; animation: countTick 260ms var(--ease-velvet-soft) both; }
+@keyframes countTick { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Facedown teaser: one slow, warm sheen invites the tap. */
+.facedown { overflow: hidden; }
 .facedown::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 30%, rgb(var(--c-gold) / 0.10) 50%, transparent 70%);
+  background: linear-gradient(115deg, transparent 30%, rgb(var(--c-gold) / 0.08) 50%, transparent 70%);
   transform: translateX(-100%);
-  animation: sheen 2.6s ease-in-out infinite;
+  animation: sheen 4.2s var(--ease-sheen) 0.8s infinite;
   pointer-events: none;
 }
 @keyframes sheen { to { transform: translateX(100%); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal-in { animation: fadeUp 0.4s ease both; }
+  .reveal-in, .card-turn { animation: none; opacity: 1; }
+  .stagger > * { animation: none; opacity: 1; }
+  .name-reveal, .score-bloom, .bar-glow, .count-tick { animation: none; }
   .facedown::after { animation: none; }
 }
 

@@ -76,7 +76,9 @@ export interface SynAspect {
   orb: number;
   points: number;
   valence: "harmonious" | "tension" | "blending";
-  sentence: string;
+  headline: string; // plain-language claim (leads the row)
+  why: string;      // the grounded reasoning (small, beneath)
+  sentence: string; // headline + why, kept for back-compat
 }
 
 export interface SynOverlay {
@@ -118,55 +120,125 @@ function pointsOf(chart: ChartFacts): Point[] {
   return pts;
 }
 
-// ───────────────────────── phrasing (explainability) ─────────────────────────
+// ───────────────────────── phrasing (story + grounded why) ─────────────────────────
+// Each contact becomes a plain-language `headline` plus a small `why` that
+// traces the claim to what the two planets mean and how the aspect connects
+// them. No em-dashes. Outer planets get distinct meaning so the old repeated
+// "generational undertone" wall never returns.
+
 const ASPECT_WORD: Record<string, string> = {
-  conjunction: "conjunct",
-  sextile: "sextile",
-  square: "square",
-  trine: "trine",
-  quincunx: "quincunx",
-  opposition: "opposite",
+  conjunction: "conjunct", sextile: "sextile", square: "square",
+  trine: "trine", quincunx: "quincunx", opposition: "opposite",
 };
 
-function meaningPhrase(a: string, b: string): string {
+// Plain verb for the headline (no jargon).
+const ASPECT_VERB: Record<string, string> = {
+  conjunction: "meets", sextile: "clicks with", square: "rubs against",
+  trine: "flows with", quincunx: "keeps adjusting to", opposition: "pulls against",
+};
+
+// What each point stands for, in plain words (powers the grounded "why").
+export const BODY_ROLE: Record<string, string> = {
+  Sun: "who you are", Moon: "what you need to feel safe", Mercury: "how you think and talk",
+  Venus: "how you love", Mars: "what you chase", Jupiter: "where you grow",
+  Saturn: "where you get serious", Uranus: "your need for freedom",
+  Neptune: "your dreamy side", Pluto: "your depth",
+  Ascendant: "the face you meet the world with", Midheaven: "where you're headed in life",
+};
+
+const ASPECT_ACTION: Record<string, string> = {
+  conjunction: "they fuse into one charge", sextile: "they open an easy door",
+  square: "they rub until something gives", trine: "they flow with no effort",
+  quincunx: "they keep adjusting to each other", opposition: "they pull like opposite poles",
+};
+
+// Neutral topic (the DOMAIN at stake), keyed by sorted pair. The verb and the
+// why carry the valence, so a theme reads true whether the contact flows or
+// rubs (e.g. "pulls against ... warmth and affection").
+const PAIR_THEME: Record<string, string> = {
+  "Moon|Sun": "identity and needs", "Mars|Venus": "desire and attraction", "Moon|Venus": "warmth and affection",
+  "Sun|Venus": "warmth and admiration", "Moon|Moon": "emotional rhythms", "Venus|Venus": "tastes and love styles",
+  "Saturn|Venus": "love and commitment", "Mars|Moon": "passion and care", "Saturn|Sun": "structure and self",
+  "Mars|Mars": "drive and pace", "Sun|Sun": "two life paths", "Mercury|Mercury": "how you talk",
+  "Mercury|Moon": "words and feelings", "Jupiter|Venus": "fun and generosity",
+  "Ascendant|Venus": "first impressions and love", "Ascendant|Mars": "presence and desire",
+};
+
+// Grounded reasoning for the high-weight pairs (no em-dashes).
+const PAIR_WHY: Record<string, string> = {
+  "Moon|Sun": "One person's identity meets the other's comfort zone, the deepest fit two charts share.",
+  "Mars|Venus": "What one chases meets how the other loves, so the chemistry is raw and physical.",
+  "Moon|Venus": "What you need and how you love speak the same language, so warmth flows.",
+  "Sun|Venus": "Who one person is meets how the other loves, so fondness arrives naturally.",
+  "Moon|Moon": "Both read comfort and safety the same way, so feelings sync without effort.",
+  "Venus|Venus": "You each love and value in similar ways, so tastes rarely clash.",
+  "Saturn|Venus": "Where one gets serious meets how the other loves, so it commits, and it can feel weighty.",
+  "Mars|Moon": "What one chases meets what the other needs, so drive and care charge each other.",
+  "Saturn|Sun": "Where one builds meets who the other is, so one steadies the other over time.",
+  "Mars|Mars": "You push and fight in similar ways, great in private, mind the clashes.",
+  "Sun|Sun": "Two core selves stand side by side, aligned or learning to share the road.",
+  "Mercury|Mercury": "You each think and speak alike, so conversation rarely needs translating.",
+  "Mercury|Moon": "How one thinks meets what the other feels, so talking and feeling connect.",
+  "Jupiter|Venus": "Where one grows meets how the other loves, so the bond feels lucky and kind.",
+  "Ascendant|Venus": "The face one meets the world with meets how the other loves, so the draw is immediate.",
+  "Ascendant|Mars": "The face one shows the world meets what the other chases, so heat shows up fast.",
+};
+
+// Distinct flavor per outer planet (replaces the single repeated fallback).
+const OUTER_THEME: Record<string, string> = {
+  Uranus: "an electric, free streak", Neptune: "a dreamy, idealizing haze", Pluto: "an all-or-nothing depth",
+};
+const OUTER_WHY: Record<string, string> = {
+  Uranus: "Freedom and surprise charge the bond, and routine is the enemy.",
+  Neptune: "Romance and imagination soften the edges, and clarity is the work.",
+  Pluto: "Intensity runs deep here, all in or not at all.",
+};
+
+// Varied closers so no two lines read alike (kills the repeated valence string).
+const CONNECTOR: Record<string, string[]> = {
+  harmonious: ["It feels natural.", "Little effort needed.", "This one just works.", "Ease lives here."],
+  tension: ["Growth lives here.", "Worth the effort.", "Friction with a point.", "It sharpens you both."],
+  blending: ["Hard to untangle.", "Fused at the core.", "One and the same.", "Deeply intertwined."],
+};
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const roleOf = (b: string) => BODY_ROLE[b] ?? b.toLowerCase();
+
+function pairTheme(a: string, b: string): string {
   const k = pairKey(a, b);
-  const map: Record<string, string> = {
-    "Moon|Sun": "the core fit between identity and emotional needs",
-    "Mars|Venus": "romantic and physical chemistry",
-    "Moon|Venus": "tenderness, warmth and affection",
-    "Sun|Venus": "natural fondness and admiration",
-    "Venus|Venus": "shared tastes and ways of loving",
-    "Moon|Moon": "deep emotional resonance",
-    "Mars|Moon": "passion, protectiveness and emotional spark",
-    "Mars|Sun": "vitality, attraction and a playful edge",
-    "Jupiter|Venus": "generosity, fun and feel-good warmth",
-    "Mars|Mars": "drive, energy and pace",
-    "Mercury|Mercury": "how you think and talk together",
-    "Mercury|Moon": "feeling understood in conversation",
-  };
-  if (k in map) return map[k];
-  if (a === "Saturn" || b === "Saturn") return "commitment, structure and staying power";
-  if (a === "Ascendant" || b === "Ascendant") return "instant attraction and being truly seen";
-  if (a === "Mercury" || b === "Mercury") return "communication and mental rapport";
-  if (OUTER.has(a) || OUTER.has(b)) return "a subtle, generational undertone";
-  return "a meaningful connection";
+  if (k in PAIR_THEME) return PAIR_THEME[k];
+  const outer = OUTER.has(a) ? a : OUTER.has(b) ? b : null;
+  if (outer) {
+    const other = outer === a ? b : a;
+    return OUTER.has(other) ? "a deep background hum" : `${OUTER_THEME[outer]} around ${roleOf(other)}`;
+  }
+  return `${roleOf(a)} meets ${roleOf(b)}`;
 }
 
-function valencePhrase(v: string): string {
-  if (v === "harmonious") return "flows with ease";
-  if (v === "tension") return "with a charged tension that fuels growth";
-  return "deeply intertwined";
+function pairWhy(a: string, b: string, aspect: string, aLon: number, bLon: number, valence: string): string {
+  const bank = CONNECTOR[valence] ?? CONNECTOR.blending;
+  const conn = bank[(Math.floor(aLon / 30) + Math.floor(bLon / 30)) % bank.length];
+  const outer = OUTER.has(a) ? a : OUTER.has(b) ? b : null;
+  if (outer) return `${OUTER_WHY[outer]} ${conn}`;
+  // The rosy pair gloss only fits flowing contacts. For tension, lead with the
+  // friction itself (roles + the aspect's action) so the why never contradicts
+  // the "pulls against / rubs against" headline.
+  if (valence !== "tension") {
+    const k = pairKey(a, b);
+    if (k in PAIR_WHY) return `${PAIR_WHY[k]} ${conn}`;
+  }
+  return `${cap(roleOf(a))} meets ${roleOf(b)}, and ${ASPECT_ACTION[aspect]}. ${conn}`;
 }
 
 // ───────────────────────── scoring ─────────────────────────
 const sat = (raw: number, k: number) => Math.round(100 * (1 - Math.exp(-raw / k)));
 
 function bandFor(score: number): SynastryResult["band"] {
-  if (score >= 82) return { key: "rare", label: "Rare resonance", blurb: "An unusually rich web of connection — the kind that feels almost written in the stars." };
-  if (score >= 68) return { key: "strong", label: "Strong connection", blurb: "Real chemistry with solid foundations — plenty to build on together." };
-  if (score >= 52) return { key: "potential", label: "Real potential", blurb: "A genuine spark with room to grow; the differences can become depth." };
-  if (score >= 36) return { key: "work", label: "Worth the work", blurb: "Attraction is here, but it asks for patience and understanding to flourish." };
-  return { key: "challenging", label: "Challenging chemistry", blurb: "Very different rhythms — intense at times, and it takes real effort to harmonise." };
+  if (score >= 82) return { key: "rare", label: "Rare resonance", blurb: "An unusually rich web of connection, the kind that feels almost written in the stars." };
+  if (score >= 68) return { key: "strong", label: "Strong connection", blurb: "Real chemistry with solid foundations, plenty to build on together." };
+  if (score >= 52) return { key: "potential", label: "Real potential", blurb: "A genuine spark with room to grow, where the differences can become depth." };
+  if (score >= 36) return { key: "work", label: "Worth the work", blurb: "Attraction is here, and it asks for patience and understanding to flourish." };
+  return { key: "challenging", label: "Challenging chemistry", blurb: "Very different rhythms, intense at times, and it takes real effort to harmonise." };
 }
 
 export function computeSynastry(
@@ -199,7 +271,10 @@ export function computeSynastry(
 
       const enA = bodyMeta(pa.key as never)?.en ?? pa.key;
       const enB = bodyMeta(pb.key as never)?.en ?? pb.key;
-      const sentence = `${nameA}'s ${enA} ${ASPECT_WORD[m.def.name]} ${nameB}'s ${enB} — ${meaningPhrase(pa.key, pb.key)}, ${valencePhrase(m.def.valence)}.`;
+      const verb = ASPECT_VERB[m.def.name] ?? "meets";
+      const headline = `${nameA}'s ${enA} ${verb} ${nameB}'s ${enB}, ${pairTheme(pa.key, pb.key)}.`;
+      const why = pairWhy(pa.key, pb.key, m.def.name, pa.lon, pb.lon, m.def.valence);
+      const sentence = `${headline} ${why}`;
 
       aspects.push({
         aBody: pa.key,
@@ -210,6 +285,8 @@ export function computeSynastry(
         orb: Math.round(m.orb * 100) / 100,
         points,
         valence: m.def.valence,
+        headline,
+        why,
         sentence,
       });
     }
@@ -232,7 +309,7 @@ export function computeSynastry(
           body,
           house,
           bonus,
-          sentence: `${fromName}'s ${body} lands in ${intoName}'s ${ordinal(house)} house — ${houseTheme(house)}.`,
+          sentence: `${fromName}'s ${body} lands in ${intoName}'s ${ordinal(house)} house, ${houseTheme(house)}.`,
         });
       }
     }
@@ -265,7 +342,7 @@ export function computeSynastry(
   const score = sat(rawTotal, CONFIG.K_OVERALL);
   const timeKnownBoth = !!chartA.asc && !!chartB.asc;
   const warnings: string[] = [];
-  if (!timeKnownBoth) warnings.push("One or both birth times are unknown, so the Ascendant and house overlays are excluded — the score reflects planet-to-planet aspects only.");
+  if (!timeKnownBoth) warnings.push("One or both birth times are unknown, so the Ascendant and house overlays are excluded. The score reflects planet-to-planet aspects only.");
 
   return {
     score,

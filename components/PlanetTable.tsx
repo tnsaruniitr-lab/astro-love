@@ -49,7 +49,7 @@ export default function PlanetTable({ chart }: { chart: ChartFacts }) {
                     </span>
                   </td>
                   <td className="py-2.5 pr-4 text-right text-haze tabular-nums">
-                    {p.house ?? "—"}
+                    {p.house ?? "·"}
                   </td>
                 </tr>
               );

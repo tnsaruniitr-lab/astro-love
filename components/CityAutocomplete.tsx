@@ -61,7 +61,7 @@ export default function CityAutocomplete({
         setNote(found.length ? null : "No matching places found");
       } catch (e) {
         if ((e as { name?: string }).name !== "AbortError") {
-          setNote("Couldn’t reach the location service — check your connection.");
+          setNote("Couldn’t reach the location service, check your connection.");
           setResults([]);
         }
       } finally {

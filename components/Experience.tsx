@@ -88,7 +88,7 @@ function Header() {
         <span className="text-cream italic">you began.</span>
       </h1>
       <p className="text-haze mt-4 max-w-xl mx-auto">
-        Your natal chart, computed from real astronomy — the precise foundation
+        Your natal chart, computed from real astronomy, the precise foundation
         for math-based love and compatibility. <span className="text-cream/80">Не мистика, а точные наблюдения.</span>
       </p>
       <div className="mt-6">
@@ -157,7 +157,7 @@ function BigThree({ label, body, signKey }: { label: string; body: "Sun" | "Moon
         <span style={{ fontFamily: GLYPH_FONT }} className="text-gold">{bodyGlyph}</span> {label}
       </div>
       <div className="mt-2 text-3xl text-goldbright" style={{ fontFamily: GLYPH_FONT }}>
-        {sign ? sign.glyph : "—"}
+        {sign ? sign.glyph : "·"}
       </div>
       <div className="font-display text-lg text-cream mt-1">{sign ? sign.en : "Unknown"}</div>
       {sign && <div className="text-[11px] text-haze">{sign.ru}</div>}
@@ -168,9 +168,9 @@ function BigThree({ label, body, signKey }: { label: string; body: "Sun" | "Moon
 function AspectLegend() {
   const { palette: pal } = useTheme();
   const items = [
-    { c: pal.aspect.harmonious, t: "Harmonious — flow & ease" },
-    { c: pal.aspect.tension, t: "Challenging — passion & growth" },
-    { c: pal.aspect.blending, t: "Conjunction — blending" },
+    { c: pal.aspect.harmonious, t: "Harmonious, flow & ease" },
+    { c: pal.aspect.tension, t: "Challenging, passion & growth" },
+    { c: pal.aspect.blending, t: "Conjunction, blending" },
   ];
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-4 text-[11px] text-haze">
@@ -189,7 +189,7 @@ function Science() {
       <h3 className="font-display text-lg text-cream mb-2">Why this is real</h3>
       <p>
         Every position here is computed from the actual motion of the Sun, Moon
-        and planets — the same astronomy an observatory uses — corrected for your
+        and planets, the same astronomy an observatory uses, corrected for your
         exact birthplace and the time zone <em>as it was on your birth date</em>.
         No guesswork, fully reproducible.
       </p>
@@ -201,7 +201,7 @@ function Footer() {
   return (
     <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
       <p>For entertainment &amp; self-reflection. Not a substitute for professional advice.</p>
-      <p className="text-haze/40">Astro-Love · Milestone 1 — natal engine + UX · tropical zodiac, whole-sign houses</p>
+      <p className="text-haze/40">Astro-Love · natal engine + UX · tropical zodiac, whole-sign houses</p>
     </footer>
   );
 }
