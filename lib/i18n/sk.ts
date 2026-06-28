@@ -132,7 +132,7 @@ export const SK: UIStrings = {
     "eyebrow": "Astro-Love · Jazyk lásky",
     "h1a": "Ako",
     "h1b": "dávaš a prijímaš lásku.",
-    "subtitle": "Rýchly, úprimný kvíz. Osem otázok, žiadne údaje o narodení. Zisti, ako sa cítiš najviac milovaný.",
+    "subtitle": "Rýchly, úprimný kvíz, bez údajov o narodení. Zistite, ako lásku cítite najviac.",
     "questionOf": "Otázka {n} z {total}",
     "back": "Späť",
     "yourLoveLanguage": "Tvoj jazyk lásky",

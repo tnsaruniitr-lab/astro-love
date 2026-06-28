@@ -70,7 +70,7 @@ export const EN: UIStrings = {
   ll: {
     eyebrow: "Astro-Love · Love Language",
     h1a: "How you", h1b: "give & receive love.",
-    subtitle: "A quick, honest quiz. Eight questions, no birth data needed. Find the way you most feel loved.",
+    subtitle: "A quick, honest quiz, no birth data needed. Find the way you most feel loved.",
     questionOf: "Question {n} of {total}", back: "Back",
     yourLoveLanguage: "Your love language",
     secondaryNote: "With a strong secondary note of {x}.",

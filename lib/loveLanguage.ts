@@ -1,13 +1,20 @@
-// Standalone "Your Love Language" quiz. Self-report (NOT astrology) — kept
-// deliberately separate from the chart engine. Original wording and questions
-// so we use the common five modes of giving/receiving love without the
-// trademarked branding. Deterministic scorer, no em-dashes.
+// Standalone "Love Language" quiz. Self-report (NOT astrology), kept separate
+// from the chart engine. Uses the five widely-known love languages with our own
+// wording and scenario questions (no trademarked assessment). Deterministic
+// scorer, no em-dashes.
+//
+// Honest framing: the five love languages (Chapman, 1992) are a popular lens,
+// but empirical support is mixed: studies find the categories overlap and most
+// people value several, and matching one "primary" language does not predict
+// relationship satisfaction better than general affection. We present this as a
+// conversation starter, not a verdict. See RESEARCH_NOTE.
 
 export type Mode = "words" | "acts" | "gifts" | "time" | "touch";
 
 export interface ModeInfo {
   key: Mode;
-  title: string;
+  title: string;   // full name, e.g. "Words of Affirmation"
+  short: string;   // compact, e.g. "Words"
   tagline: string;
   desc: string;
   askFor: string;
@@ -16,121 +23,164 @@ export interface ModeInfo {
 
 export const MODES: ModeInfo[] = [
   {
-    key: "words", title: "Words", tagline: "Words of love",
-    desc: "You feel most loved through spoken and written affection: compliments, encouragement, an honest 'I am proud of you.'",
-    askFor: "Tell your partner that hearing it out loud matters. A specific compliment lands far harder than a generic thanks.",
-    speak: "Say what you appreciate, often and specifically. Leave a note where they will find it.",
+    key: "words", title: "Words of Affirmation", short: "Words", tagline: "Spoken & written love",
+    desc: "You feel most loved through affection put into words: specific compliments, encouragement, hearing 'I love you' and 'I'm proud of you' out loud or in a message. Vague praise does little, but precise, heartfelt words land deepest.",
+    askFor: "Tell your partner that hearing it matters, and be specific about the kind of words that reach you. A detailed compliment outweighs a generic thanks.",
+    speak: "Say what you appreciate, often and precisely. Leave a note, send a mid-day text.",
   },
   {
-    key: "acts", title: "Acts", tagline: "Acts of care",
-    desc: "You feel loved when someone lightens your load: handling a task, fixing the thing, showing up with help.",
-    askFor: "Name the few things that would mean the most, and then let them actually help.",
-    speak: "Do the small useful thing before being asked.",
+    key: "acts", title: "Acts of Service", short: "Acts", tagline: "Love shown through doing",
+    desc: "You feel loved when your partner eases your load: doing a chore unasked, handling a dreaded task, taking responsibility so you do not carry it alone. To you, effort is affection and follow-through is everything.",
+    askFor: "Name the few tasks that would mean the most, then let them genuinely help without redoing it after.",
+    speak: "Do the useful thing before being asked, and follow through on it.",
   },
   {
-    key: "gifts", title: "Gifts", tagline: "Thoughtful tokens",
-    desc: "It is not about money, it is the thought. A small gift says 'I was thinking of you' in a form you can hold.",
-    askFor: "Share that little thoughtful surprises mean more to you than big expensive ones.",
-    speak: "Notice what they mention wanting, then surprise them with it.",
+    key: "gifts", title: "Receiving Gifts", short: "Gifts", tagline: "Thoughtful tokens",
+    desc: "It is the thought, not the price. A well-chosen gift, even a tiny one, is a visible symbol that says 'I saw this and thought of you.' Forgotten occasions tend to sting more for you than for most.",
+    askFor: "Share that small, thoughtful surprises mean more to you than expensive ones, and that dates and occasions matter.",
+    speak: "Notice what they mention wanting, then surprise them with meaningful little tokens.",
   },
   {
-    key: "time", title: "Time", tagline: "Quality time",
-    desc: "You feel loved through undivided attention: phones away, fully present, just the two of you.",
-    askFor: "Ask for protected, distraction-free time together. Presence matters more than length.",
-    speak: "Put devices away and give your full focus, even for ten minutes.",
+    key: "time", title: "Quality Time", short: "Time", tagline: "Undivided attention",
+    desc: "You feel loved through undivided attention: phones away, real conversation, doing things side by side. Presence beats presents, and being half-there can feel like being absent.",
+    askFor: "Ask for protected, distraction-free time. Focus and eye contact matter more than how long it lasts.",
+    speak: "Put devices away and give your full attention, even for ten real minutes.",
   },
   {
-    key: "touch", title: "Touch", tagline: "Physical closeness",
-    desc: "You feel loved through everyday affection: a hand on your back, a hug, closeness that says 'I am here.'",
-    askFor: "Let your partner know everyday touch, not only intimacy, keeps you connected.",
-    speak: "Offer affection freely, a touch on the arm, a hug at hello.",
+    key: "touch", title: "Physical Touch", short: "Touch", tagline: "Closeness you can feel",
+    desc: "You feel loved through everyday physical closeness: a hand on your back, a hug, holding hands, falling asleep close. It is reassurance you can feel, and its absence reads as distance.",
+    askFor: "Let your partner know that everyday touch, not only intimacy, is what keeps you connected.",
+    speak: "Offer affection freely, a touch on the arm, a hug at hello and at goodbye.",
   },
 ];
 
 export const modeInfo = (m: Mode) => MODES.find((x) => x.key === m)!;
 
+export const RESEARCH_NOTE =
+  "Based on the five love languages (Chapman, 1992), a popular way to talk about how we give and receive love. Worth knowing: research finds the five overlap and most people value several, so treat this as a conversation starter, not a verdict, and showing affection in many ways matters most.";
+
 export interface Question { prompt: string; options: { mode: Mode; label: string }[] }
 
-// Each question offers all five modes, phrased per scenario.
+// Specific, scenario-based questions. Each offers all five modes as concrete actions.
 export const QUESTIONS: Question[] = [
   {
-    prompt: "A perfect evening together is…",
+    prompt: "After a stressful week, what would mean the most is your partner…",
     options: [
-      { mode: "time", label: "phones away, just the two of you" },
-      { mode: "touch", label: "curled up close, no space between you" },
-      { mode: "words", label: "talking for hours and really being heard" },
-      { mode: "acts", label: "them handling everything so you can unwind" },
-      { mode: "gifts", label: "a little surprise waiting for you" },
+      { mode: "words", label: "telling you, in detail, how proud they are of how you handled it" },
+      { mode: "acts", label: "quietly taking dinner, the dishes and the laundry off your plate" },
+      { mode: "gifts", label: "showing up with your favourite treat, just because" },
+      { mode: "time", label: "putting the phone away and giving you the whole evening" },
+      { mode: "touch", label: "pulling you into a long hug and not letting go" },
     ],
   },
   {
-    prompt: "You feel most loved when your partner…",
+    prompt: "When your partner takes responsibility without being asked, sorting the bills, booking the trip, you feel…",
     options: [
-      { mode: "words", label: "tells you exactly what they admire about you" },
-      { mode: "acts", label: "takes something off your plate unasked" },
-      { mode: "touch", label: "reaches for your hand out of nowhere" },
-      { mode: "gifts", label: "brings home something that made them think of you" },
-      { mode: "time", label: "clears their schedule to be with you" },
+      { mode: "acts", label: "deeply loved, that is exactly it" },
+      { mode: "words", label: "loved, and you'd also love to hear why they did it" },
+      { mode: "time", label: "loved, especially when it frees up time for you both" },
+      { mode: "touch", label: "loved, and you want to hug them for it" },
+      { mode: "gifts", label: "loved, like they just handed you a gift" },
     ],
   },
   {
-    prompt: "After a hard day, you most want…",
+    prompt: "A small thing that secretly means a lot: when they…",
     options: [
-      { mode: "touch", label: "a long, wordless hug" },
-      { mode: "words", label: "reassurance that you have got this" },
-      { mode: "acts", label: "them to cook so you do not have to" },
-      { mode: "time", label: "to just be together, no agenda" },
-      { mode: "gifts", label: "a small treat to lift your mood" },
+      { mode: "gifts", label: "bring you a coffee made exactly how you like it" },
+      { mode: "words", label: "leave you a sweet note or text in the middle of the day" },
+      { mode: "touch", label: "rest a hand on your back as they pass" },
+      { mode: "acts", label: "fill up your car or fix the thing without being asked" },
+      { mode: "time", label: "call just to hear about your day" },
     ],
   },
   {
-    prompt: "It stings the most when your partner…",
+    prompt: "What stings the most is when your partner…",
     options: [
-      { mode: "time", label: "is always distracted or busy" },
-      { mode: "words", label: "never notices or says thank you" },
-      { mode: "touch", label: "pulls away physically" },
-      { mode: "acts", label: "leaves you to handle everything alone" },
-      { mode: "gifts", label: "forgets a date that mattered to you" },
+      { mode: "time", label: "is right there but always on their phone" },
+      { mode: "words", label: "stops noticing you, and never says thank you" },
+      { mode: "touch", label: "goes cold and stops reaching for you" },
+      { mode: "acts", label: "leaves you to carry everything alone" },
+      { mode: "gifts", label: "forgets a date or occasion that mattered to you" },
     ],
   },
   {
-    prompt: "You naturally show love by…",
+    prompt: "On a genuinely hard day you most want…",
     options: [
-      { mode: "acts", label: "doing helpful things for them" },
-      { mode: "touch", label: "being affectionate and close" },
-      { mode: "words", label: "telling them how much they mean to you" },
-      { mode: "gifts", label: "finding the perfect little present" },
-      { mode: "time", label: "giving them your full attention" },
+      { mode: "touch", label: "to be held, words optional" },
+      { mode: "words", label: "to hear 'you've got this, I believe in you'" },
+      { mode: "acts", label: "someone to just take a task off your plate" },
+      { mode: "time", label: "unhurried time to talk it all through" },
+      { mode: "gifts", label: "a little pick-me-up to soften the day" },
     ],
   },
   {
-    prompt: "The line that melts you…",
+    prompt: "You are most likely to show love by…",
     options: [
-      { mode: "words", label: "\"You mean everything to me.\"" },
-      { mode: "time", label: "\"Let us spend the whole day together.\"" },
-      { mode: "touch", label: "\"Come here.\"" },
-      { mode: "acts", label: "\"I took care of it so you would not have to.\"" },
-      { mode: "gifts", label: "\"I saw this and thought of you.\"" },
+      { mode: "acts", label: "doing practical things to make their life easier" },
+      { mode: "words", label: "telling and texting them how much they mean to you" },
+      { mode: "gifts", label: "picking out something they'd never buy themselves" },
+      { mode: "time", label: "clearing your schedule to be fully present" },
+      { mode: "touch", label: "being physically affectionate and close" },
     ],
   },
   {
-    prompt: "On your birthday you would love…",
+    prompt: "The most romantic gesture, to you, is…",
     options: [
-      { mode: "gifts", label: "a gift chosen just for you" },
-      { mode: "time", label: "a whole day together, nowhere to be" },
-      { mode: "words", label: "a heartfelt message you will reread" },
-      { mode: "acts", label: "them taking care of every detail" },
-      { mode: "touch", label: "lots of closeness and affection" },
+      { mode: "time", label: "a whole day together with nowhere to be" },
+      { mode: "gifts", label: "a gift that shows they really get you" },
+      { mode: "words", label: "a heartfelt letter you'll keep and reread" },
+      { mode: "touch", label: "slow dancing in the kitchen" },
+      { mode: "acts", label: "them handling every detail so you can relax" },
     ],
   },
   {
-    prompt: "You feel disconnected when…",
+    prompt: "When you are apart for a while, you most miss…",
     options: [
-      { mode: "touch", label: "there is no physical affection" },
-      { mode: "time", label: "you never get real time together" },
-      { mode: "words", label: "there is no warmth in their words" },
-      { mode: "acts", label: "you feel unsupported and alone in it" },
-      { mode: "gifts", label: "the little gestures dry up" },
+      { mode: "touch", label: "their closeness, hugs and falling asleep together" },
+      { mode: "words", label: "your daily 'good morning, I love you' messages" },
+      { mode: "time", label: "your unhurried time together" },
+      { mode: "acts", label: "the little things they quietly do around you" },
+      { mode: "gifts", label: "the small surprises they'd bring back" },
+    ],
+  },
+  {
+    prompt: "Your partner says 'I love you' best when they…",
+    options: [
+      { mode: "words", label: "actually say it, often and specifically" },
+      { mode: "touch", label: "show it through touch and closeness" },
+      { mode: "acts", label: "show up and do, rather than just say" },
+      { mode: "gifts", label: "mark it with something thoughtful" },
+      { mode: "time", label: "give you their full, undivided attention" },
+    ],
+  },
+  {
+    prompt: "An ordinary Tuesday feels loving when they…",
+    options: [
+      { mode: "acts", label: "make your coffee or pack your lunch" },
+      { mode: "touch", label: "kiss you hello and goodbye" },
+      { mode: "words", label: "text you something sweet at lunch" },
+      { mode: "time", label: "ask real questions about your day and listen" },
+      { mode: "gifts", label: "leave a little treat where you'll find it" },
+    ],
+  },
+  {
+    prompt: "You would feel taken for granted if your partner stopped…",
+    options: [
+      { mode: "words", label: "complimenting you and saying thank you" },
+      { mode: "acts", label: "helping out and pulling their weight" },
+      { mode: "touch", label: "being physically affectionate" },
+      { mode: "time", label: "making real time for just the two of you" },
+      { mode: "gifts", label: "marking the little moments with a small gesture" },
+    ],
+  },
+  {
+    prompt: "Looking back, your happiest relationship moments were mostly about…",
+    options: [
+      { mode: "time", label: "time together, fully present" },
+      { mode: "touch", label: "physical closeness and affection" },
+      { mode: "words", label: "things that were said, out loud or in writing" },
+      { mode: "acts", label: "the ways they showed up and took care of things" },
+      { mode: "gifts", label: "meaningful things given and received" },
     ],
   },
 ];

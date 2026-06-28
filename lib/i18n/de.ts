@@ -132,7 +132,7 @@ export const DE: UIStrings = {
     "eyebrow": "Astro-Love · Sprache der Liebe",
     "h1a": "Wie du",
     "h1b": "Liebe gibst & empfängst.",
-    "subtitle": "Ein kurzes, ehrliches Quiz. Acht Fragen, keine Geburtsdaten nötig. Finde heraus, wie du dich am meisten geliebt fühlst.",
+    "subtitle": "Ein kurzer, ehrlicher Test, ohne Geburtsdaten. Finde heraus, wie du Liebe am stärksten spürst.",
     "questionOf": "Frage {n} von {total}",
     "back": "Zurück",
     "yourLoveLanguage": "Deine Sprache der Liebe",

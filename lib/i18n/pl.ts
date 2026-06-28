@@ -132,7 +132,7 @@ export const PL: UIStrings = {
     "eyebrow": "Astro-Love · Język miłości",
     "h1a": "Jak",
     "h1b": "dajesz i przyjmujesz miłość.",
-    "subtitle": "Szybki, szczery quiz. Osiem pytań, bez danych urodzeniowych. Odkryj, jak najbardziej czujesz się kochana.",
+    "subtitle": "Szybki, szczery quiz, bez danych urodzenia. Odkryj, jak najmocniej czujesz miłość.",
     "questionOf": "Pytanie {n} z {total}",
     "back": "Wstecz",
     "yourLoveLanguage": "Twój język miłości",

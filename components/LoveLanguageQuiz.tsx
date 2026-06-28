@@ -7,7 +7,7 @@ import { useT } from "./LocaleProvider";
 import TopNav from "./TopNav";
 import LoveLangIcon from "./LoveLangIcon";
 import { fill } from "@/lib/i18n";
-import { QUESTIONS, scoreLoveLanguage, compatList, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
+import { QUESTIONS, scoreLoveLanguage, compatList, RESEARCH_NOTE, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
 
 export default function LoveLanguageQuiz() {
   const t = useT();
@@ -143,7 +143,7 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
 
       <div className="glass p-6 sm:p-8">
         <h3 className="font-display text-xl text-cream text-center mb-1">{t.ll.howYouPair}</h3>
-        <p className="text-xs text-haze text-center mb-5">{fill(t.ll.howYouPairSub, { lang: primary.title })}</p>
+        <p className="text-xs text-haze text-center mb-5">{fill(t.ll.howYouPairSub, { lang: primary.short })}</p>
         <ul className="space-y-2.5 max-w-2xl mx-auto">
           {compatList(primary.key).map((row) => (
             <li key={row.mode.key} className="flex items-start gap-3 rounded-xl bg-cream/[0.03] border border-cream/10 px-4 py-3">
@@ -159,6 +159,8 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
           ))}
         </ul>
       </div>
+
+      <p className="text-[11px] text-haze/55 leading-relaxed max-w-xl mx-auto text-center px-2">{RESEARCH_NOTE}</p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button onClick={onRetake} className="text-xs uppercase tracking-[0.18em] text-gold/80 hover:text-gold underline underline-offset-4">{t.ll.retake}</button>
