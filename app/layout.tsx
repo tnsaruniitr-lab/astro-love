@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import ThemeFX from "@/components/ThemeFX";
+import UnlockOnReturn from "@/components/UnlockOnReturn";
 
 export const metadata: Metadata = {
   title: "Astro-Love · Natal Chart",
@@ -42,7 +43,10 @@ export default function RootLayout({
         <div className="starfield" />
         <ThemeProvider>
           <ThemeFX />
-          <LocaleProvider>{children}</LocaleProvider>
+          <LocaleProvider>
+            <UnlockOnReturn />
+            {children}
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>
