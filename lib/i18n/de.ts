@@ -153,5 +153,13 @@ export const DE: UIStrings = {
     },
     "footer1": "Ein Quiz zur Selbstreflexion, getrennt von deinem Astrologie-Horoskop.",
     "footer2": "Astro-Love · Sprache der Liebe"
+  },
+  "pay": {
+    "title": "Vollständige Deutung freischalten",
+    "cta": "Alles freischalten", "price": "$2",
+    "perkOnce": "Einmalig", "perkInstant": "Sofort", "perkAll": "Alle Deutungen",
+    "compat": "Ihr habt euren Wert und euren Typ gesehen. Öffnet jeden weiteren Einblick, jeweils mit dem astrologischen Beleg dahinter.",
+    "natal": "Öffne jede Antwort, die dein Chart über die Liebe bereithält, mit den genauen Stellungen dahinter.",
+    "love": "Sieh, wie du zu jeder anderen Sprache der Liebe passt, worum du bitten solltest und was die Wissenschaft sagt."
   }
 };

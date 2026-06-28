@@ -153,5 +153,13 @@ export const ES: UIStrings = {
     },
     "footer1": "Un test de autorreflexión, independiente de tu carta astrológica.",
     "footer2": "Astro-Love · Lenguaje del amor"
+  },
+  "pay": {
+    "title": "Desbloquea la lectura completa",
+    "cta": "Desbloquear todo", "price": "$2",
+    "perkOnce": "Pago único", "perkInstant": "Al instante", "perkAll": "Todas las lecturas",
+    "compat": "Has visto tu puntuación y tu tipo. Abre cada percepción restante, cada una con la prueba astrológica detrás.",
+    "natal": "Abre cada respuesta que tu carta guarda sobre el amor, con las posiciones exactas detrás de cada una.",
+    "love": "Descubre cómo encajas con cada otro lenguaje del amor, qué pedir y qué dice la ciencia."
   }
 };

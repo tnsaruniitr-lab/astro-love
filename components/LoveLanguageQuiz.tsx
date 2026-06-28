@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
 import { useT } from "./LocaleProvider";
 import TopNav from "./TopNav";
 import LoveLangIcon from "./LoveLangIcon";
+import PaywallGate from "./Paywall";
+import { useUnlocked } from "@/lib/entitlement";
 import { fill } from "@/lib/i18n";
 import { QUESTIONS, scoreLoveLanguage, compatList, RESEARCH_NOTE, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
 
@@ -14,9 +16,25 @@ export default function LoveLanguageQuiz() {
   const [answers, setAnswers] = useState<Mode[]>([]);
   const done = answers.length === QUESTIONS.length;
 
+  // Persist a completed quiz so returning from checkout restores the result
+  // (no retake) with the deeper sections now unlocked.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("am_ll_answers");
+      if (!raw) return;
+      const a = JSON.parse(raw);
+      if (Array.isArray(a) && a.length === QUESTIONS.length) setAnswers(a as Mode[]);
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    if (answers.length === QUESTIONS.length) {
+      try { localStorage.setItem("am_ll_answers", JSON.stringify(answers)); } catch { /* ignore */ }
+    }
+  }, [answers]);
+
   const pick = (m: Mode) => setAnswers((a) => [...a, m]);
   const back = () => setAnswers((a) => a.slice(0, -1));
-  const reset = () => setAnswers([]);
+  const reset = () => { setAnswers([]); try { localStorage.removeItem("am_ll_answers"); } catch { /* ignore */ } };
 
   const step = answers.length;
   const q = QUESTIONS[step];
@@ -80,6 +98,7 @@ export default function LoveLanguageQuiz() {
 function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: () => void }) {
   const { palette: pal } = useTheme();
   const t = useT();
+  const unlocked = useUnlocked();
   const { primary, secondary, ranking } = result;
 
   const levelStyle = (level: Level): React.CSSProperties => {
@@ -88,6 +107,45 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
   };
   const levelLabel = (level: Level): string =>
     level === "Effortless" ? t.ll.levels.effortless : level === "Natural fit" ? t.ll.levels.naturalFit : t.ll.levels.translation;
+
+  // Free: your primary language, the ranking and sharing. Behind the $2 unlock:
+  // how to ask for it, how to speak to others, the full compatibility map and
+  // the research note.
+  const deeper = (
+    <div className="space-y-5">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="glass p-5">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-gold/90">{t.ll.askForIt}</div>
+          <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.askFor}</p>
+        </div>
+        <div className="glass p-5">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">{t.ll.speakToOthers}</div>
+          <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.speak}</p>
+        </div>
+      </div>
+
+      <div className="glass p-6 sm:p-8">
+        <h3 className="font-display text-xl text-cream text-center mb-1">{t.ll.howYouPair}</h3>
+        <p className="text-xs text-haze text-center mb-5">{fill(t.ll.howYouPairSub, { lang: primary.short })}</p>
+        <ul className="space-y-2.5 max-w-2xl mx-auto">
+          {compatList(primary.key).map((row) => (
+            <li key={row.mode.key} className="flex items-start gap-3 rounded-xl bg-cream/[0.03] border border-cream/10 px-4 py-3">
+              <span className="text-gold shrink-0 mt-0.5"><LoveLangIcon mode={row.mode.key} size={30} /></span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-cream/90 text-[15px]">{row.mode.title}</span>
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0" style={levelStyle(row.level)}>{levelLabel(row.level)}</span>
+                </div>
+                <p className="text-[13px] text-haze/85 leading-snug mt-1">{row.why}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <p className="text-[11px] text-haze/55 leading-relaxed max-w-xl mx-auto text-center px-2">{RESEARCH_NOTE}</p>
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -130,37 +188,9 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
         <ShareLang title={primary.title} />
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="glass p-5">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-gold/90">{t.ll.askForIt}</div>
-          <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.askFor}</p>
-        </div>
-        <div className="glass p-5">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">{t.ll.speakToOthers}</div>
-          <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.speak}</p>
-        </div>
-      </div>
-
-      <div className="glass p-6 sm:p-8">
-        <h3 className="font-display text-xl text-cream text-center mb-1">{t.ll.howYouPair}</h3>
-        <p className="text-xs text-haze text-center mb-5">{fill(t.ll.howYouPairSub, { lang: primary.short })}</p>
-        <ul className="space-y-2.5 max-w-2xl mx-auto">
-          {compatList(primary.key).map((row) => (
-            <li key={row.mode.key} className="flex items-start gap-3 rounded-xl bg-cream/[0.03] border border-cream/10 px-4 py-3">
-              <span className="text-gold shrink-0 mt-0.5"><LoveLangIcon mode={row.mode.key} size={30} /></span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-cream/90 text-[15px]">{row.mode.title}</span>
-                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0" style={levelStyle(row.level)}>{levelLabel(row.level)}</span>
-                </div>
-                <p className="text-[13px] text-haze/85 leading-snug mt-1">{row.why}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="text-[11px] text-haze/55 leading-relaxed max-w-xl mx-auto text-center px-2">{RESEARCH_NOTE}</p>
+      {unlocked
+        ? deeper
+        : <PaywallGate blurb={t.pay.love} next="/love-language" peek={deeper} />}
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button onClick={onRetake} className="text-xs uppercase tracking-[0.18em] text-gold/80 hover:text-gold underline underline-offset-4">{t.ll.retake}</button>

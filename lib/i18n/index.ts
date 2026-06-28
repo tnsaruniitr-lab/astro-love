@@ -79,6 +79,12 @@ export interface UIStrings {
     levels: { effortless: string; naturalFit: string; translation: string };
     footer1: string; footer2: string;
   };
+
+  pay: {
+    title: string; cta: string; price: string;
+    perkOnce: string; perkInstant: string; perkAll: string;
+    compat: string; natal: string; love: string;
+  };
 }
 
 const DICTS: Record<Locale, UIStrings> = { en: EN, ru: RU, uk: UK, sk: SK, pl: PL, de: DE, es: ES, ar: AR };

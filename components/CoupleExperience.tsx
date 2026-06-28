@@ -4,7 +4,8 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
 import TopNav from "./TopNav";
-import CheckoutButton from "./CheckoutButton";
+import PaywallGate from "./Paywall";
+import { useUnlocked } from "@/lib/entitlement";
 import { useTheme } from "./ThemeProvider";
 import { useT } from "./LocaleProvider";
 import { fill } from "@/lib/i18n";
@@ -154,43 +155,58 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     { key: "shine", hint: h.shine, node: <ShineCard reads={reads} /> },
   ];
 
+  // Free tier: the score and the couple-type cards. Everything past that sits
+  // behind a single $2 unlock. The gate reads entitlement reactively, so a
+  // confirmed payment reveals the rest without a reload.
+  const unlocked = useUnlocked();
+  const FREE = 2;
   const total = cards.length;
+  const gateAt = unlocked ? total : Math.min(FREE, total);
+  const locked = !unlocked && total > gateAt;
+
   const [revealed, setRevealed] = useState(staged ? 0 : total);
   const activeRef = useRef<HTMLButtonElement>(null);
   const cascadingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Return target preserves this exact reading (shared-link encoding), so after
+  // paying the user lands back on the same couple, now fully unlocked.
+  const next = (() => {
+    try { return `/?r=${encodeReading(forms.a, forms.b)}`; } catch { return "/"; }
+  })();
+
   const prefersReduced = () =>
     typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
-    if (staged && revealed > 0 && revealed < total && !cascadingRef.current) {
+    if (staged && revealed > 0 && revealed < gateAt && !cascadingRef.current) {
       activeRef.current?.scrollIntoView({ behavior: prefersReduced() ? "auto" : "smooth", block: "center" });
     }
-  }, [revealed, staged, total]);
+  }, [revealed, staged, gateAt]);
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
   const revealAll = () => {
-    if (prefersReduced()) { setRevealed(total); return; }
+    if (prefersReduced()) { setRevealed(gateAt); return; }
     cascadingRef.current = true;
     intervalRef.current = setInterval(() => {
       setRevealed((n) => {
-        const next = Math.min(n + 1, total);
-        if (next >= total && intervalRef.current) { clearInterval(intervalRef.current); cascadingRef.current = false; }
-        return next;
+        const nx = Math.min(n + 1, gateAt);
+        if (nx >= gateAt && intervalRef.current) { clearInterval(intervalRef.current); cascadingRef.current = false; }
+        return nx;
       });
     }, 150);
   };
 
-  const done = Math.min(revealed, total);
+  const done = Math.min(revealed, gateAt);
+  const atGate = revealed >= gateAt;
 
   return (
     <section className="mt-10 space-y-5">
       {staged && (
         <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze">
           <span><span key={done} className="count-tick">✦ {fill(t.compat.revealedOfTotal, { n: done, total })}</span> {t.compat.revealedWord}</span>
-          {revealed < total && (
+          {revealed < gateAt && (
             <button onClick={revealAll} className="text-gold/80 hover:text-gold underline underline-offset-4">
               {t.compat.revealAll}
             </button>
@@ -199,14 +215,18 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
       )}
 
       <div className="deck-slot space-y-5">
-        {cards.map((c, i) => {
+        {cards.slice(0, gateAt).map((c, i) => {
           if (i < revealed) return <div key={c.key} className="card-turn">{c.node}</div>;
           if (i === revealed) return <FacedownCard key={c.key} ref={activeRef} hint={c.hint} onReveal={() => setRevealed(i + 1)} />;
           return null;
         })}
       </div>
 
-      {revealed >= total && syn.warnings.length > 0 && (
+      {locked && atGate && (
+        <PaywallGate blurb={t.pay.compat} next={next} peek={cards[gateAt]?.node} />
+      )}
+
+      {unlocked && revealed >= total && syn.warnings.length > 0 && (
         <div className="text-xs text-gold/75 bg-gold/5 border border-gold/15 rounded-xl px-4 py-3">
           {syn.warnings.map((w, i) => (<p key={i}>✦ {w}</p>))}
         </div>
@@ -248,7 +268,6 @@ function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormV
         <p className="text-cream/85 max-w-md mx-auto mt-2 text-[15px] leading-relaxed">{scoreMeaning(syn)}</p>
       </div>
       <ShareRow syn={syn} forms={forms} />
-      <div className="mt-6"><CheckoutButton /></div>
     </div>
   );
 }
