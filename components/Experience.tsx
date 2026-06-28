@@ -34,11 +34,11 @@ export default function Experience({
   initialChart,
   initialForm,
 }: {
-  initialChart: ChartFacts;
+  initialChart: ChartFacts | null;
   initialForm: BirthFormValues;
 }) {
   const t = useT();
-  const [chart, setChart] = useState<ChartFacts>(initialChart);
+  const [chart, setChart] = useState<ChartFacts | null>(initialChart);
   const [form, setForm] = useState<BirthFormValues>(initialForm);
   const [formKey, setFormKey] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -91,15 +91,33 @@ export default function Experience({
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          <ResultCard chart={chart} />
-          {unlocked
-            ? <LoveQuestions chart={chart} />
-            : <PaywallGate blurb={t.pay.natal} next="/natal" peek={<LoveQuestions chart={chart} />} />}
+          {chart ? (
+            <>
+              <ResultCard chart={chart} />
+              {unlocked
+                ? <LoveQuestions chart={chart} />
+                : <PaywallGate blurb={t.pay.natal} next="/natal" peek={<LoveQuestions chart={chart} />} />}
+            </>
+          ) : (
+            <NatalEmpty />
+          )}
         </div>
       </div>
 
       <Footer />
     </main>
+  );
+}
+
+function NatalEmpty() {
+  const t = useT();
+  return (
+    <div className="glass p-10 text-center">
+      <div className="inline-flex flex-col items-center gap-2 text-haze/70">
+        <span className="text-2xl text-gold/55" aria-hidden>✦</span>
+        <p className="text-sm">{t.natal.empty}</p>
+      </div>
+    </div>
   );
 }
 

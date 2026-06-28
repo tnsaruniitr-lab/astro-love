@@ -1,6 +1,4 @@
 import Experience from "@/components/Experience";
-import { computeChart } from "@/lib/astro/chart";
-import { placeForCity } from "@/lib/geo/cities";
 import type { BirthFormValues } from "@/components/BirthForm";
 
 export const metadata = {
@@ -8,33 +6,19 @@ export const metadata = {
   description: "Your real birth chart, computed from astronomy, the foundation of math-based love compatibility.",
 };
 
-// Default sample so the page renders a beautiful, populated chart on first load.
-const DEFAULT_FORM: BirthFormValues = {
+// Fresh visitor: blank form, no sample chart. A returning visitor's last chart
+// is restored client-side from storage (see Experience).
+const BLANK_FORM: BirthFormValues = {
   name: "",
-  place: placeForCity("moscow"),
-  year: 1990,
-  month: 5,
-  day: 14,
-  hour: 6,
-  minute: 30,
+  place: null,
+  year: 2000,
+  month: 1,
+  day: 1,
+  hour: 12,
+  minute: 0,
   timeKnown: true,
 };
 
 export default function Page() {
-  const place = DEFAULT_FORM.place!;
-  const chart = computeChart({
-    name: DEFAULT_FORM.name || undefined,
-    place: place.label,
-    year: DEFAULT_FORM.year,
-    month: DEFAULT_FORM.month,
-    day: DEFAULT_FORM.day,
-    hour: DEFAULT_FORM.hour,
-    minute: DEFAULT_FORM.minute,
-    timeKnown: DEFAULT_FORM.timeKnown,
-    lat: place.lat,
-    lon: place.lon,
-    tz: place.tz,
-  });
-
-  return <Experience initialChart={chart} initialForm={DEFAULT_FORM} />;
+  return <Experience initialChart={null} initialForm={BLANK_FORM} />;
 }

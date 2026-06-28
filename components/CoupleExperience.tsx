@@ -33,6 +33,8 @@ const ASPECT_GLYPH: Record<string, string> = {
   conjunction: "☌", sextile: "⚹", square: "□", trine: "△", quincunx: "⚻", opposition: "☍",
 };
 
+const COMPAT_KEY = "am_compat";
+
 export default function CoupleExperience({
   initialA,
   initialB,
@@ -40,40 +42,61 @@ export default function CoupleExperience({
 }: {
   initialA: BirthFormValues;
   initialB: BirthFormValues;
-  initialResult: CoupleResult;
+  initialResult: CoupleResult | null;
 }) {
   const { palette: pal } = useTheme();
   const t = useT();
   const [a, setA] = useState(initialA);
   const [b, setB] = useState(initialB);
-  const [result, setResult] = useState<CoupleResult>(initialResult);
+  const [result, setResult] = useState<CoupleResult | null>(initialResult);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // 0 = initial/SSR result (show everything). Each Calculate bumps this and
-  // remounts <Result> into the staged tap-to-reveal "ritual".
+  // 0 = initial/SSR or restored result (show everything). Each Calculate bumps
+  // this and remounts <Result> into the staged tap-to-reveal "ritual".
   const [revealKey, setRevealKey] = useState(0);
+
+  const compute = (fa: BirthFormValues, fb: BirthFormValues): CoupleResult => {
+    const toInput = (f: BirthFormValues, who: string): ChartInput => {
+      const p = f.place;
+      if (!p) throw new Error(fill(t.compat.choosePlace, { who }));
+      return {
+        name: f.name || undefined, place: p.label,
+        year: f.year, month: f.month, day: f.day, hour: f.hour, minute: f.minute,
+        timeKnown: f.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
+      };
+    };
+    const inA = toInput(fa, t.compat.personA);
+    const inB = toInput(fb, t.compat.personB);
+    const chartA = computeChart(inA);
+    const chartB = computeChart(inB);
+    const syn = computeSynastry(chartA, chartB, inA.name ?? t.compat.personA, inB.name ?? t.compat.personB);
+    return { a: chartA, b: chartB, syn };
+  };
+
+  // Returning visitor: if there's no shared-link result, restore the last
+  // reading this device computed (inputs are controlled, so just set them).
+  useEffect(() => {
+    if (initialResult) return;
+    try {
+      const raw = localStorage.getItem(COMPAT_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { a: BirthFormValues; b: BirthFormValues };
+      if (!saved?.a?.place || !saved?.b?.place) return;
+      setA(saved.a);
+      setB(saved.b);
+      setResult(compute(saved.a, saved.b));
+    } catch { /* ignore a malformed or stale save */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function calculate() {
     setLoading(true);
     setError(null);
     await new Promise((r) => setTimeout(r, 280)); // keep the "Reading the stars…" beat
     try {
-      const toInput = (f: BirthFormValues, who: string): ChartInput => {
-        const p = f.place;
-        if (!p) throw new Error(fill(t.compat.choosePlace, { who }));
-        return {
-          name: f.name || undefined, place: p.label,
-          year: f.year, month: f.month, day: f.day, hour: f.hour, minute: f.minute,
-          timeKnown: f.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
-        };
-      };
-      const inA = toInput(a, t.compat.personA);
-      const inB = toInput(b, t.compat.personB);
-      const chartA = computeChart(inA);
-      const chartB = computeChart(inB);
-      const syn = computeSynastry(chartA, chartB, inA.name ?? t.compat.personA, inB.name ?? t.compat.personB);
-      setResult({ a: chartA, b: chartB, syn });
+      setResult(compute(a, b));
       setRevealKey((k) => k + 1);
+      try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -111,13 +134,27 @@ export default function CoupleExperience({
         {error && <p className="mt-3 text-sm text-rose/90">{error}</p>}
       </div>
 
-      <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
+      {result
+        ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
+        : <EmptyState />}
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
         <p>{t.compat.footer1}</p>
         <p className="text-haze/40">{t.compat.footer2}</p>
       </footer>
     </main>
+  );
+}
+
+function EmptyState() {
+  const t = useT();
+  return (
+    <section className="mt-12 mb-2 text-center">
+      <div className="inline-flex flex-col items-center gap-2 text-haze/70">
+        <span className="text-2xl text-gold/55" aria-hidden>✦</span>
+        <p className="text-sm">{t.compat.empty}</p>
+      </div>
+    </section>
   );
 }
 

@@ -38,7 +38,7 @@ export interface UIStrings {
   };
 
   compat: {
-    eyebrow: string; h1a: string; h1b: string; subtitle: string;
+    eyebrow: string; h1a: string; h1b: string; subtitle: string; empty: string;
     personA: string; personB: string; calculate: string; calculating: string;
     choosePlace: string; // "Please choose {who}'s birthplace from the list"
     revealedOfTotal: string; // "{n} / {total}"
@@ -60,7 +60,7 @@ export interface UIStrings {
   };
 
   natal: {
-    eyebrow: string; h1a: string; h1b: string; subtitle: string;
+    eyebrow: string; h1a: string; h1b: string; subtitle: string; empty: string;
     yourBirthDetails: string; birthDetailsSub: string; revealChart: string; readingSky: string;
     yourChart: string; sun: string; moon: string; rising: string; unknown: string;
     ascendant: string; midheaven: string; planet: string; position: string; house: string;
