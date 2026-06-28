@@ -50,7 +50,7 @@ export default function BirthFields({
       <Field label="Birthplace">
         <CityAutocomplete value={v.place} onChange={(p) => set("place", p)} />
         <span className="block text-[11px] text-haze/70 mt-1.5">
-          Type any city worldwide — pick from the list to lock its coordinates &amp; time zone.
+          Type any city worldwide, then pick from the list to lock its coordinates &amp; time zone.
         </span>
       </Field>
 

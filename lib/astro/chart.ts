@@ -25,7 +25,7 @@ export function computeChart(input: ChartInput): ChartFacts {
   const date = inst.utc;
   const warnings: string[] = [];
   if (!inst.zoneValid) warnings.push(`Unknown/invalid time zone "${input.tz}"; treated local time as UTC.`);
-  if (!input.timeKnown) warnings.push("Birth time unknown — Ascendant, houses and house placements are omitted; the Moon's exact degree is approximate.");
+  if (!input.timeKnown) warnings.push("Birth time unknown, so Ascendant, houses and house placements are omitted. The Moon's exact degree is approximate.");
 
   // Angles & houses require a known birth time.
   let asc: Angle | null = null;

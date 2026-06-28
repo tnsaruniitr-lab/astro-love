@@ -6,7 +6,7 @@ import ThemeFX from "@/components/ThemeFX";
 export const metadata: Metadata = {
   title: "Astro-Love · Natal Chart",
   description:
-    "Your real birth chart, computed from astronomy — the foundation of math-based love compatibility.",
+    "Your real birth chart, computed from astronomy, the foundation of math-based love compatibility.",
 };
 
 export const viewport: Viewport = {
