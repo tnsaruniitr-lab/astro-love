@@ -59,6 +59,8 @@ export const SK: UIStrings = {
       "shine": "kde žiarite"
     },
     "youTwoAre": "Vy dvaja ste",
+    "leanInto": "Stavte na", "gentlyWatch": "Jemne sledujte", "whyThisType": "Prečo tento typ", "strongest": "najsilnejšie",
+    "easyCount": "{n} ľahkých", "growthCount": "{n} na rast",
     "strongestThread": "Vaše najsilnejšie puto",
     "strongestThreadTag": "jediný najsilnejší kontakt medzi vašimi horoskopmi.",
     "almostExact": "takmer presné",

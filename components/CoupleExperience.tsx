@@ -12,9 +12,9 @@ import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
 import {
-  coupleArchetype, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
+  archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
   tendToList, flowGrowStory,
-  type Archetype, type Thread, type SubscoreRead, type TendItem,
+  type ArchetypeReading, type Thread, type SubscoreRead, type TendItem,
 } from "@/lib/astro/insights";
 import { buildShareCard, buildCaptions, encodeReading, type ShareCard } from "@/lib/astro/share";
 import type { ChartFacts, ChartInput } from "@/lib/astro/types";
@@ -137,14 +137,14 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   const { a, b, syn } = result;
   const t = useT();
 
-  const archetype = coupleArchetype(syn);
+  const archReading = archetypeReading(syn);
   const thread = strongestThread(syn);
   const reads = subscoreRead(syn);
 
   const h = t.compat.hints;
   const cards: { key: string; hint: string; node: React.ReactNode }[] = [
     { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} /> },
-    { key: "type", hint: h.type, node: <ArchetypeCard archetype={archetype} /> },
+    { key: "type", hint: h.type, node: <ArchetypeCard reading={archReading} /> },
     ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} /> }] : []),
     { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
     { key: "tend", hint: h.tend, node: <TendCard syn={syn} /> },
@@ -253,13 +253,57 @@ function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormV
   );
 }
 
-function ArchetypeCard({ archetype }: { archetype: Archetype }) {
+function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
+  const { palette: pal } = useTheme();
   const t = useT();
+  const a = reading.anchor;
+  const aMeta = a ? BODIES.find((x) => x.key === a.aBody) : null;
+  const bMeta = a ? BODIES.find((x) => x.key === a.bBody) : null;
+  const vc = a ? pal.aspect[a.valence] : pal.personA;
   return (
     <div className="glass p-6 sm:p-8 text-center stagger">
       <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.youTwoAre}</div>
-      <h3 className="font-display text-5xl sm:text-6xl tracking-[-0.02em] leading-[0.98] name-reveal mt-2 pb-1">{archetype.name}</h3>
-      <p className="text-cream/85 text-[15px] max-w-md mx-auto mt-3 leading-relaxed">{archetype.line}</p>
+      <h3 className="font-display text-5xl sm:text-6xl tracking-[-0.02em] leading-[0.98] name-reveal mt-2 pb-1">{reading.name}</h3>
+      <p className="text-haze/80 text-sm max-w-md mx-auto mt-2 italic">{reading.definition}</p>
+      <p className="text-cream/90 text-[15px] max-w-lg mx-auto mt-4 leading-relaxed">{reading.blurb}</p>
+
+      <div className="grid sm:grid-cols-2 gap-3 mt-6 max-w-2xl mx-auto text-left">
+        <div className="rounded-2xl bg-gold/[0.06] border border-gold/20 p-4">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-gold/90 flex items-center gap-1.5"><span aria-hidden>✦</span>{t.compat.leanInto}</div>
+          <div className="text-sm text-cream/90 mt-1.5 leading-snug">{reading.leanInto}</div>
+        </div>
+        <div className="rounded-2xl bg-cream/[0.03] border border-cream/10 p-4">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-haze/90 flex items-center gap-1.5"><span aria-hidden>☾</span>{t.compat.gentlyWatch}</div>
+          <div className="text-sm text-cream/90 mt-1.5 leading-snug">{reading.watch}</div>
+        </div>
+      </div>
+
+      <div className="mt-6 max-w-2xl mx-auto rounded-2xl border border-gold/15 bg-gold/[0.04] px-4 py-4">
+        <div className="text-[10px] uppercase tracking-[0.24em] text-gold/80">{t.compat.whyThisType}</div>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+          <span className="inline-flex items-baseline gap-1.5">
+            <span className="text-cream/90">{reading.topFacet.label}</span>
+            <span className="tabular-nums text-goldbright">{reading.topFacet.value}<span className="text-haze/55 text-xs"> / 100</span></span>
+            <span className="text-[10px] uppercase tracking-wider text-haze/70">{t.compat.strongest}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 text-haze/85 tabular-nums">
+            <span style={{ color: pal.aspect.harmonious }}>{fill(t.compat.easyCount, { n: reading.flowCount })}</span>
+            <span className="text-haze/40">·</span>
+            <span style={{ color: pal.aspect.tension }}>{fill(t.compat.growthCount, { n: reading.growCount })}</span>
+          </span>
+        </div>
+        {a && (
+          <div className="mt-3 pt-3 border-t border-cream/10 text-center">
+            <div className="flex items-center justify-center gap-2 text-2xl" style={{ fontFamily: GLYPH_FONT }}>
+              <span style={{ color: pal.personA }}>{aMeta?.glyph ?? "↑"}</span>
+              <span style={{ color: vc, fontSize: "0.8em" }}>{ASPECT_GLYPH[a.aspect]}</span>
+              <span style={{ color: pal.personB }}>{bMeta?.glyph ?? "↑"}</span>
+            </div>
+            <p className="text-[13px] text-cream/85 mt-2 leading-snug">{a.headline}</p>
+            <p className="text-[10px] text-haze/55 mt-1 tabular-nums">{a.proof}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

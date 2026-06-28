@@ -28,6 +28,8 @@ export const EN: UIStrings = {
       wheel: "your synastry wheel", brings: "what you each bring", shine: "where you shine",
     },
     youTwoAre: "You two are",
+    leanInto: "Lean into", gentlyWatch: "Gently watch", whyThisType: "Why this type", strongest: "strongest",
+    easyCount: "{n} easy", growthCount: "{n} growth",
     strongestThread: "Your strongest thread",
     strongestThreadTag: "the single strongest contact between your charts.",
     almostExact: "almost exact", remarkablyTight: "remarkably tight",

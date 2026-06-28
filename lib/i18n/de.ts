@@ -59,6 +59,8 @@ export const DE: UIStrings = {
       "shine": "wo ihr strahlt"
     },
     "youTwoAre": "Ihr beide seid",
+    "leanInto": "Setzt auf", "gentlyWatch": "Sanft beachten", "whyThisType": "Warum dieser Typ", "strongest": "am stärksten",
+    "easyCount": "{n} leicht", "growthCount": "{n} Wachstum",
     "strongestThread": "Euer stärkster Faden",
     "strongestThreadTag": "der einzelne stärkste Kontakt zwischen euren Horoskopen.",
     "almostExact": "fast exakt",

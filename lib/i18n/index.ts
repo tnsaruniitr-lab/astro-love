@@ -45,6 +45,8 @@ export interface UIStrings {
     revealedWord: string; revealAll: string; tapToReveal: string;
     hints: { score: string; type: string; thread: string; dims: string; tend: string; flowgrow: string; wheel: string; brings: string; shine: string };
     youTwoAre: string;
+    leanInto: string; gentlyWatch: string; whyThisType: string; strongest: string;
+    easyCount: string; growthCount: string; // "{n} easy", "{n} growth"
     strongestThread: string; strongestThreadTag: string; almostExact: string; remarkablyTight: string;
     fiveDimensions: string; strongestLabel: string; tenderestLabel: string;
     tendTitle: string; tendSub: string;
