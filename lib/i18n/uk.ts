@@ -59,6 +59,8 @@ export const UK: UIStrings = {
       "shine": "де ви сяєте"
     },
     "youTwoAre": "Ви двоє —",
+    "leanInto": "Спирайтесь на", "gentlyWatch": "Делікатно стежте", "whyThisType": "Чому цей тип", "strongest": "найсильніше",
+    "easyCount": "{n} легких", "growthCount": "{n} на зростання",
     "strongestThread": "Ваш найміцніший зв'язок",
     "strongestThreadTag": "найсильніший контакт між вашими картами.",
     "almostExact": "майже точний",

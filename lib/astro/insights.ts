@@ -70,6 +70,54 @@ export function coupleArchetype(syn: SynastryResult): Archetype {
   return ARCHETYPE[`${top}:${tilt(syn)}`] ?? BAND_FALLBACK[syn.band.key] ?? BAND_FALLBACK.potential;
 }
 
+// Richer, grounded detail for the couple-type card, keyed like ARCHETYPE.
+interface ArchetypeDetail { blurb: string; leanInto: string; watch: string }
+const ARCHETYPE_DETAIL: Record<string, ArchetypeDetail> = {
+  "attraction:harmonious": { blurb: "Attraction is your strongest current, and it runs easy. You are drawn to each other with little effort, and being together feels light, warm and a little electric. The pull is natural, not hard won.", leanInto: "Keep doing the simple things that first drew you in, novelty keeps an easy spark alive.", watch: "Easy can drift into autopilot. Flirt, plan and surprise each other on purpose." },
+  "attraction:dynamic": { blurb: "Attraction is your strongest current, and it runs hot. There is real magnetism here, with just enough friction to keep the charge alive. You pull together, push apart, and rarely feel bored.", leanInto: "Aim the heat at each other, not against. Passion and a little tension are your fuel.", watch: "Intensity can tip into drama. Repair quickly and keep the friction playful." },
+  "emotional:harmonious": { blurb: "Your strongest tie is emotional, and it feels safe. You read each other's moods, soothe easily, and become a refuge from the rest of the world. Comfort comes naturally.", leanInto: "Protect the safety you have built, keep being the soft place each other lands.", watch: "Comfort can turn into a bubble. Keep inviting a little adventure in." },
+  "emotional:dynamic": { blurb: "Your strongest tie is emotional, and it runs deep and changeable. Feelings rise and fall together, vivid and sometimes stormy. When you are close, it is very close.", leanInto: "Name feelings out loud and early, your depth is a gift when shared, not stored.", watch: "Moods can swamp you. Give each other room to settle before the big talks." },
+  "affection:harmonious": { blurb: "Affection is your strongest note, and it flows freely. Tenderness, warmth and small kindnesses pass easily between you. You are gentle with each other, and it shows.", leanInto: "Keep the small gestures coming, they are the language you both speak best.", watch: "Sweetness can dodge hard truths. Be kind and honest, not only kind." },
+  "affection:dynamic": { blurb: "Affection is your strongest note, with a passionate, dramatic streak. You love big, sometimes messily, always wholeheartedly. Grand gestures and deep feeling come naturally.", leanInto: "Let the romance be loud, just back it with everyday consistency.", watch: "Drama is not the same as depth. Make the ordinary days feel loved too." },
+  "communication:harmonious": { blurb: "Your strongest link is mental. You think out loud together, finish each other's thoughts, and simply get each other. Conversation rarely needs translating.", leanInto: "Talk often, you solve things best out loud and together.", watch: "Thinking alike can skip the feeling underneath. Check the heart, not only the logic." },
+  "communication:dynamic": { blurb: "Your strongest link is mental, and it has an edge. You challenge and sharpen each other, debate for sport, and keep one another on your toes.", leanInto: "Use the friction to think better, you make each other smarter.", watch: "Debate can turn into combat. Argue the idea, never the person." },
+  "commitment:harmonious": { blurb: "Commitment is your strongest foundation, and it sits easy. You feel solid, dependable and built for the long haul. Showing up for each other is second nature.", leanInto: "Lean on the stability, it frees you to take risks together.", watch: "Steady can slide into routine. Keep choosing each other, not just the commitment." },
+  "commitment:dynamic": { blurb: "Commitment is your strongest foundation, forged through real effort. You build something lasting on purpose, through work, patience and shared goals.", leanInto: "Keep building toward something together, shared projects are your glue.", watch: "Effort can feel like duty. Make room for play, not just progress." },
+};
+const BAND_DETAIL_FALLBACK: ArchetypeDetail = {
+  blurb: "No single dimension dominates yet, so your type is still taking shape. The connection is real, and where you put your attention is where it will grow.",
+  leanInto: "Pour energy into whatever already feels good between you.",
+  watch: "Without a clear strength to lean on, drift is the risk. Be intentional.",
+};
+
+export interface ArchetypeReading {
+  name: string; definition: string; line: string;
+  blurb: string; leanInto: string; watch: string;
+  topFacet: { key: Facet; label: string; value: number };
+  tilt: "harmonious" | "dynamic";
+  flowCount: number; growCount: number;
+  anchor: SynAspect | null; // the strongest contact that exemplifies the type
+  proof: string;
+}
+
+/** Everything the couple-type card needs, with the derivation made explicit. */
+export function archetypeReading(syn: SynastryResult): ArchetypeReading {
+  const arch = coupleArchetype(syn);
+  const top = topFacet(syn.subscores);
+  const tl = tilt(syn);
+  const hasTop = syn.subscores[top] > 0;
+  const detail = (hasTop ? ARCHETYPE_DETAIL[`${top}:${tl}`] : null) ?? BAND_DETAIL_FALLBACK;
+  const { flow, grow } = flowGrow(syn);
+  const anchor = strongestThread(syn)?.aspect ?? null;
+  return {
+    name: arch.name, definition: arch.definition, line: arch.line,
+    blurb: detail.blurb, leanInto: detail.leanInto, watch: detail.watch,
+    topFacet: { key: top, label: FACET_LABEL[top], value: syn.subscores[top] },
+    tilt: tl, flowCount: flow.length, growCount: grow.length, anchor,
+    proof: `Strongest dimension: ${FACET_LABEL[top]} ${syn.subscores[top]} of 100. Balance: ${flow.length} easy vs ${grow.length} growth contacts.`,
+  };
+}
+
 // ───────────────────────── strongest thread (hero aspect) ─────────────────────────
 export interface Thread { aspect: SynAspect; tightness: string | null }
 
