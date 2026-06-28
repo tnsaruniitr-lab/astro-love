@@ -1,35 +1,41 @@
-import Experience from "@/components/Experience";
+import CoupleExperience from "@/components/CoupleExperience";
 import { computeChart } from "@/lib/astro/chart";
+import { computeSynastry } from "@/lib/astro/synastry";
 import { placeForCity } from "@/lib/geo/cities";
-import type { BirthFormValues } from "@/components/BirthForm";
+import { decodeReading } from "@/lib/astro/share";
+import type { BirthFormValues } from "@/components/BirthFields";
+import type { ChartInput } from "@/lib/astro/types";
 
-// Default sample so the page renders a beautiful, populated chart on first load.
-const DEFAULT_FORM: BirthFormValues = {
-  name: "",
-  place: placeForCity("moscow"),
-  year: 1990,
-  month: 5,
-  day: 14,
-  hour: 6,
-  minute: 30,
-  timeKnown: true,
+export const metadata = {
+  title: "Astro-Love · Love Compatibility",
+  description: "Math-based love compatibility from real synastry, every point explained.",
 };
 
-export default function Page() {
-  const place = DEFAULT_FORM.place!;
-  const chart = computeChart({
-    name: DEFAULT_FORM.name || undefined,
-    place: place.label,
-    year: DEFAULT_FORM.year,
-    month: DEFAULT_FORM.month,
-    day: DEFAULT_FORM.day,
-    hour: DEFAULT_FORM.hour,
-    minute: DEFAULT_FORM.minute,
-    timeKnown: DEFAULT_FORM.timeKnown,
-    lat: place.lat,
-    lon: place.lon,
-    tz: place.tz,
-  });
+const DEFAULT_A: BirthFormValues = { name: "Anna", place: placeForCity("moscow"), year: 1990, month: 5, day: 14, hour: 6, minute: 30, timeKnown: true };
+const DEFAULT_B: BirthFormValues = { name: "Dmitri", place: placeForCity("spb"), year: 1988, month: 8, day: 22, hour: 14, minute: 15, timeKnown: true };
 
-  return <Experience initialChart={chart} initialForm={DEFAULT_FORM} />;
+function toInput(f: BirthFormValues): ChartInput {
+  const p = f.place!;
+  return {
+    name: f.name || undefined, place: p.label,
+    year: f.year, month: f.month, day: f.day, hour: f.hour, minute: f.minute,
+    timeKnown: f.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
+  };
+}
+
+export default function Page({ searchParams }: { searchParams?: { r?: string } }) {
+  let A = DEFAULT_A;
+  let B = DEFAULT_B;
+  // A shared link carries both people's inputs, so the recipient sees the same
+  // reading (computeSynastry is deterministic, no backend needed).
+  const token = searchParams?.r;
+  if (token) {
+    const decoded = decodeReading(token);
+    if (decoded?.a.place && decoded?.b.place) { A = decoded.a; B = decoded.b; }
+  }
+
+  const chartA = computeChart(toInput(A));
+  const chartB = computeChart(toInput(B));
+  const syn = computeSynastry(chartA, chartB, A.name || "Person A", B.name || "Person B");
+  return <CoupleExperience initialA={A} initialB={B} initialResult={{ a: chartA, b: chartB, syn }} />;
 }

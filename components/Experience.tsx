@@ -5,6 +5,7 @@ import Link from "next/link";
 import BirthForm, { type BirthFormValues } from "./BirthForm";
 import ChartWheel from "./ChartWheel";
 import PlanetTable from "./PlanetTable";
+import LoveQuestions from "./LoveQuestions";
 import ThemeSwatches from "./ThemeSwatches";
 import { useTheme } from "./ThemeProvider";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
@@ -52,9 +53,14 @@ export default function Experience({
 
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
-      <div className="flex justify-center mb-6">
-        <ThemeSwatches />
-      </div>
+      <nav className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 mb-8">
+        <Link href="/" className="text-xs uppercase tracking-[0.2em] text-haze hover:text-gold transition-colors order-2 sm:order-1">
+          ← Love compatibility
+        </Link>
+        <div className="order-1 sm:order-2">
+          <ThemeSwatches />
+        </div>
+      </nav>
       <Header />
 
       <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 mt-10">
@@ -66,8 +72,9 @@ export default function Experience({
           <Science />
         </div>
 
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-6">
           <ResultCard chart={chart} />
+          <LoveQuestions chart={chart} />
         </div>
       </div>
 
@@ -92,7 +99,7 @@ function Header() {
         for math-based love and compatibility. <span className="text-cream/80">Не мистика, а точные наблюдения.</span>
       </p>
       <div className="mt-6">
-        <Link href="/compatibility" className="btn-gold inline-flex items-center gap-2 px-7 py-2.5 text-sm">
+        <Link href="/" className="btn-gold inline-flex items-center gap-2 px-7 py-2.5 text-sm">
           ✦ Check love compatibility →
         </Link>
       </div>
