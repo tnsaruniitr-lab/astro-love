@@ -1,0 +1,397 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ───────────────────────── theme tokens ───────────────────────── */
+:root,
+[data-theme="night"] {
+  color-scheme: dark;
+  --c-ink: 7 6 18;
+  --c-cosmos: 12 10 29;
+  --c-panel: 21 18 43;
+  --c-gold: 232 200 135;
+  --c-goldbright: 244 224 176;
+  --c-rose: 221 143 166;
+  --c-teal: 116 178 196;
+  --c-lilac: 185 167 230;
+  --c-haze: 167 159 196;
+  --c-cream: 239 233 246;
+
+  --page-bg: #070612;
+  --cosmos-bg:
+    radial-gradient(1100px 800px at 78% -10%, rgba(120, 86, 200, 0.30), transparent 60%),
+    radial-gradient(900px 700px at 12% 18%, rgba(196, 142, 170, 0.16), transparent 55%),
+    radial-gradient(1200px 900px at 50% 120%, rgba(72, 120, 150, 0.18), transparent 60%),
+    linear-gradient(180deg, #08071a 0%, #0a0820 45%, #070612 100%);
+  --star-opacity: 0.55;
+  --aurora-opacity: 0;
+  --aurora-bg: none;
+
+  --glass-bg: linear-gradient(180deg, rgba(33, 27, 64, 0.62), rgba(18, 15, 38, 0.55));
+  --glass-border: rgba(232, 200, 135, 0.16);
+  --glass-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass-blur: 14px;
+
+  --field-bg: rgba(10, 8, 26, 0.6);
+  --field-border: rgba(232, 200, 135, 0.18);
+  --field-focus: rgba(232, 200, 135, 0.55);
+  --field-focus-ring: rgba(232, 200, 135, 0.12);
+
+  --btn-grad: linear-gradient(180deg, #f4e0b0, #e2bd76);
+  --btn-text: #2b2206;
+  --btn-shadow: 0 12px 30px -12px rgba(232, 200, 135, 0.6);
+
+  --gold-grad: linear-gradient(180deg, #f7e8c4 0%, #e8c887 55%, #c9a45f 100%);
+  --hairline: rgba(232, 200, 135, 0.14);
+}
+
+[data-theme="dawn"] {
+  color-scheme: light;
+  --c-ink: 251 242 238;
+  --c-cosmos: 253 246 241;
+  --c-panel: 255 255 255;
+  --c-gold: 185 126 116; /* soft rose-gold */
+  --c-goldbright: 175 96 92; /* rich rose-gold for headings/numbers */
+  --c-rose: 196 84 112;
+  --c-teal: 79 134 147;
+  --c-lilac: 138 112 184;
+  --c-haze: 150 116 130; /* muted mauve */
+  --c-cream: 74 46 58; /* deep rosewood = primary text */
+
+  --page-bg: #fbf2ee;
+  --cosmos-bg:
+    radial-gradient(1100px 820px at 82% -12%, rgba(255, 190, 200, 0.55), transparent 60%),
+    radial-gradient(950px 720px at 6% 16%, rgba(255, 214, 178, 0.5), transparent 58%),
+    radial-gradient(1050px 940px at 50% 116%, rgba(214, 196, 240, 0.5), transparent 62%),
+    radial-gradient(760px 640px at 96% 72%, rgba(255, 203, 220, 0.45), transparent 60%),
+    linear-gradient(180deg, #fdf5f1 0%, #fbeef0 50%, #fdf3ee 100%);
+  --star-opacity: 0;
+  --aurora-opacity: 1;
+  --aurora-bg:
+    radial-gradient(420px 420px at 22% 30%, rgba(255, 178, 196, 0.45), transparent 70%),
+    radial-gradient(460px 460px at 78% 28%, rgba(255, 206, 166, 0.42), transparent 70%),
+    radial-gradient(520px 520px at 62% 78%, rgba(206, 184, 240, 0.40), transparent 70%),
+    radial-gradient(380px 380px at 30% 76%, rgba(255, 198, 214, 0.38), transparent 70%);
+
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 250, 248, 0.62));
+  --glass-border: rgba(183, 110, 110, 0.20);
+  --glass-shadow: 0 32px 64px -34px rgba(176, 108, 104, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --glass-blur: 16px;
+
+  --field-bg: rgba(255, 255, 255, 0.72);
+  --field-border: rgba(183, 110, 110, 0.24);
+  --field-focus: rgba(183, 110, 110, 0.6);
+  --field-focus-ring: rgba(207, 126, 126, 0.16);
+
+  --btn-grad: linear-gradient(180deg, #eca99a, #d27f80);
+  --btn-text: #46202f;
+  --btn-shadow: 0 16px 34px -14px rgba(207, 126, 126, 0.55);
+
+  --gold-grad: linear-gradient(180deg, #cf8f80 0%, #c2727a 55%, #a85f6a 100%);
+  --hairline: rgba(176, 108, 104, 0.16);
+}
+
+/* ── Velvet Rouge — deep wine + rose-gold (love, rising hearts) ── */
+[data-theme="velvet"] {
+  color-scheme: dark;
+  --c-ink: 22 10 18;
+  --c-cosmos: 32 16 26;
+  --c-panel: 60 24 40;
+  --c-gold: 231 173 148;
+  --c-goldbright: 243 201 176;
+  --c-rose: 255 126 156;
+  --c-teal: 127 182 196;
+  --c-lilac: 201 167 230;
+  --c-haze: 201 154 166;
+  --c-cream: 244 224 227;
+
+  --page-bg: #160a12;
+  --cosmos-bg:
+    radial-gradient(1100px 800px at 78% -10%, rgba(170, 40, 70, 0.32), transparent 60%),
+    radial-gradient(900px 700px at 12% 18%, rgba(120, 30, 60, 0.30), transparent 55%),
+    radial-gradient(1200px 900px at 50% 120%, rgba(90, 30, 60, 0.30), transparent 60%),
+    linear-gradient(180deg, #1c0b15 0%, #19090f 50%, #140810 100%);
+  --star-opacity: 0;
+  --aurora-opacity: 0;
+  --aurora-bg: none;
+
+  --glass-bg: linear-gradient(180deg, rgba(70, 28, 46, 0.55), rgba(40, 16, 28, 0.5));
+  --glass-border: rgba(231, 173, 148, 0.18);
+  --glass-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass-blur: 14px;
+
+  --field-bg: rgba(30, 12, 22, 0.6);
+  --field-border: rgba(231, 173, 148, 0.20);
+  --field-focus: rgba(231, 173, 148, 0.55);
+  --field-focus-ring: rgba(231, 173, 148, 0.14);
+
+  --btn-grad: linear-gradient(180deg, #f3c9b0, #e0928f);
+  --btn-text: #2a0f17;
+  --btn-shadow: 0 12px 30px -12px rgba(231, 140, 150, 0.5);
+
+  --gold-grad: linear-gradient(180deg, #f3c9b0 0%, #e7ad94 55%, #d68f8a 100%);
+  --hairline: rgba(231, 173, 148, 0.14);
+}
+
+/* ── Peony Bloom — soft pink (love, falling petals) ── */
+[data-theme="peony"] {
+  color-scheme: light;
+  --c-ink: 253 240 242;
+  --c-cosmos: 254 244 246;
+  --c-panel: 255 255 255;
+  --c-gold: 200 122 134;
+  --c-goldbright: 182 95 118;
+  --c-rose: 212 86 127;
+  --c-teal: 79 134 147;
+  --c-lilac: 138 112 184;
+  --c-haze: 168 125 143;
+  --c-cream: 90 46 68;
+
+  --page-bg: #fdf0f2;
+  --cosmos-bg:
+    radial-gradient(1100px 820px at 82% -12%, rgba(255, 180, 205, 0.55), transparent 60%),
+    radial-gradient(950px 720px at 6% 16%, rgba(255, 205, 210, 0.5), transparent 58%),
+    radial-gradient(1050px 940px at 50% 116%, rgba(235, 200, 240, 0.5), transparent 62%),
+    radial-gradient(760px 640px at 96% 72%, rgba(255, 195, 220, 0.48), transparent 60%),
+    linear-gradient(180deg, #fdf2f4 0%, #fce9ef 50%, #fdf1f3 100%);
+  --star-opacity: 0;
+  --aurora-opacity: 0;
+  --aurora-bg: none;
+
+  --glass-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 248, 250, 0.64));
+  --glass-border: rgba(196, 95, 134, 0.18);
+  --glass-shadow: 0 32px 64px -34px rgba(196, 95, 134, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --glass-blur: 16px;
+
+  --field-bg: rgba(255, 255, 255, 0.74);
+  --field-border: rgba(196, 95, 134, 0.22);
+  --field-focus: rgba(196, 95, 134, 0.55);
+  --field-focus-ring: rgba(212, 86, 127, 0.16);
+
+  --btn-grad: linear-gradient(180deg, #f0a6be, #de6f93);
+  --btn-text: #4a1f33;
+  --btn-shadow: 0 16px 34px -14px rgba(212, 86, 127, 0.5);
+
+  --gold-grad: linear-gradient(180deg, #d98aa0 0%, #c8607f 55%, #b65f76 100%);
+  --hairline: rgba(196, 95, 134, 0.16);
+}
+
+/* ── Twilight — dusk indigo/violet, gentle aurora ── */
+[data-theme="twilight"] {
+  color-scheme: dark;
+  --c-ink: 17 13 40;
+  --c-cosmos: 25 18 54;
+  --c-panel: 36 27 70;
+  --c-gold: 233 182 144;
+  --c-goldbright: 243 211 176;
+  --c-rose: 231 154 192;
+  --c-teal: 134 192 208;
+  --c-lilac: 195 174 240;
+  --c-haze: 169 159 201;
+  --c-cream: 233 228 245;
+
+  --page-bg: #110d28;
+  --cosmos-bg:
+    radial-gradient(1100px 820px at 80% -10%, rgba(150, 110, 230, 0.34), transparent 60%),
+    radial-gradient(950px 720px at 10% 16%, rgba(231, 154, 192, 0.22), transparent 58%),
+    radial-gradient(1050px 940px at 50% 118%, rgba(233, 182, 144, 0.18), transparent 62%),
+    linear-gradient(180deg, #1a1440 0%, #140f30 50%, #100b24 100%);
+  --star-opacity: 0.35;
+  --aurora-opacity: 1;
+  --aurora-bg:
+    radial-gradient(460px 460px at 24% 30%, rgba(150, 110, 230, 0.40), transparent 70%),
+    radial-gradient(480px 480px at 78% 26%, rgba(231, 154, 192, 0.34), transparent 70%),
+    radial-gradient(540px 540px at 60% 80%, rgba(233, 182, 144, 0.26), transparent 70%);
+
+  --glass-bg: linear-gradient(180deg, rgba(48, 38, 90, 0.58), rgba(28, 22, 56, 0.5));
+  --glass-border: rgba(233, 182, 144, 0.18);
+  --glass-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass-blur: 14px;
+
+  --field-bg: rgba(20, 15, 40, 0.6);
+  --field-border: rgba(233, 182, 144, 0.20);
+  --field-focus: rgba(233, 182, 144, 0.55);
+  --field-focus-ring: rgba(233, 182, 144, 0.14);
+
+  --btn-grad: linear-gradient(180deg, #f3d3b0, #e6a98f);
+  --btn-text: #2a1f12;
+  --btn-shadow: 0 12px 30px -12px rgba(233, 182, 144, 0.5);
+
+  --gold-grad: linear-gradient(180deg, #f3d3b0 0%, #e9b690 55%, #d6a06a 100%);
+  --hairline: rgba(233, 182, 144, 0.14);
+}
+
+html,
+body {
+  background: var(--page-bg);
+  color: rgb(var(--c-cream));
+  font-family: var(--font-body, "Inter", system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background 0.6s ease;
+}
+
+/* ───────────────────────── backdrop ───────────────────────── */
+.cosmos-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background: var(--cosmos-bg);
+  transition: background 0.6s ease;
+}
+
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-repeat: repeat;
+  background-image:
+    radial-gradient(1.4px 1.4px at 20% 30%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1.2px 1.2px at 70% 60%, rgba(255, 245, 220, 0.8), transparent),
+    radial-gradient(1px 1px at 40% 80%, rgba(220, 220, 255, 0.7), transparent),
+    radial-gradient(1.6px 1.6px at 85% 25%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 55% 15%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.1px 1.1px at 10% 70%, rgba(255, 235, 210, 0.7), transparent),
+    radial-gradient(1px 1px at 90% 80%, rgba(230, 230, 255, 0.6), transparent);
+  background-size: 100% 100%;
+  animation: twinkle 7s ease-in-out infinite;
+  opacity: var(--star-opacity);
+  transition: opacity 0.6s ease;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+/* Soft drifting blooms — the ambient layer for Rose Aurora (invisible at night). */
+.aurora {
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  opacity: var(--aurora-opacity);
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+  background: var(--aurora-bg);
+  filter: blur(20px);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(2.5%, -2%, 0) scale(1.06); }
+  100% { transform: translate3d(-2%, 2.5%, 0) scale(1.02); }
+}
+
+/* ───────────────────────── components ───────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.hairline { border-top: 1px solid var(--hairline); }
+
+.gold-text {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.field {
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: rgb(var(--c-cream));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.4s ease;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--field-focus);
+  box-shadow: 0 0 0 3px var(--field-focus-ring);
+}
+.field::placeholder { color: rgb(var(--c-haze) / 0.6); }
+.field option { background: rgb(var(--c-panel)); color: rgb(var(--c-cream)); }
+
+.btn-gold {
+  background: var(--btn-grad);
+  color: var(--btn-text);
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: var(--btn-shadow);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-gold:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.btn-gold:active { transform: translateY(0); }
+.btn-gold:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+/* ───────────────────────── animations ───────────────────────── */
+.wheel-rise { animation: rise 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes rise {
+  from { opacity: 0; transform: scale(0.92) rotate(-4deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+.aspect-line { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 1.6s ease forwards 0.5s; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.planet-pop { opacity: 0; animation: pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.6); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.fade-up { animation: fadeUp 0.7s ease both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--c-gold) / 0.25); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ───────────────────────── ambient particle FX ───────────────────────── */
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40; /* drift gently in front of the UI */
+  overflow: hidden;
+  pointer-events: none;
+}
+.fx-item {
+  position: absolute;
+  will-change: transform, opacity;
+}
+
+/* rising hearts (Velvet Rouge) */
+.fx-heart {
+  bottom: -6vh;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(255, 120, 150, 0.5));
+  animation: floatUp var(--dur) ease-in infinite;
+  animation-delay: var(--delay);
+}
+@keyframes floatUp {
+  0% { transform: translateY(0) translateX(0) scale(var(--s)) rotate(-6deg); opacity: 0; }
+  12% { opacity: var(--o); }
+  85% { opacity: var(--o); }
+  100% { transform: translateY(-116vh) translateX(var(--dx)) scale(var(--s)) rotate(8deg); opacity: 0; }
+}
+
+/* falling petals (Peony Bloom) */
+.fx-petal {
+  top: -8vh;
+  opacity: 0;
+  filter: drop-shadow(0 2px 4px rgba(200, 90, 130, 0.25));
+  animation: fallDown var(--dur) linear infinite;
+  animation-delay: var(--delay);
+}
+@keyframes fallDown {
+  0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+  12% { opacity: var(--o); }
+  85% { opacity: var(--o); }
+  100% { transform: translateY(118vh) translateX(var(--dx)) rotate(var(--r)); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-heart, .fx-petal, .aurora, .starfield, .slow-spin { animation: none !important; }
+  .fx-layer { display: none; }
+}
