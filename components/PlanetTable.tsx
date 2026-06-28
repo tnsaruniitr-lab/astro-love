@@ -2,6 +2,7 @@
 
 import { BODIES, SIGNS, formatLon } from "@/lib/astro/zodiac";
 import { useTheme } from "./ThemeProvider";
+import { useT } from "./LocaleProvider";
 import type { ChartFacts } from "@/lib/astro/types";
 
 const GLYPH_FONT =
@@ -9,12 +10,13 @@ const GLYPH_FONT =
 
 export default function PlanetTable({ chart }: { chart: ChartFacts }) {
   const { palette: pal } = useTheme();
+  const t = useT();
   return (
     <div className="fade-up">
       {chart.asc && chart.mc && (
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <AnglePill label="Ascendant" lon={chart.asc.lon} />
-          <AnglePill label="Midheaven" lon={chart.mc.lon} />
+          <AnglePill label={t.natal.ascendant} lon={chart.asc.lon} />
+          <AnglePill label={t.natal.midheaven} lon={chart.mc.lon} />
         </div>
       )}
 
@@ -22,9 +24,9 @@ export default function PlanetTable({ chart }: { chart: ChartFacts }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-haze/80 text-xs uppercase tracking-wider">
-              <th className="py-2.5 pl-4 font-medium">Planet</th>
-              <th className="py-2.5 font-medium">Position</th>
-              <th className="py-2.5 pr-4 font-medium text-right">House</th>
+              <th className="py-2.5 pl-4 font-medium">{t.natal.planet}</th>
+              <th className="py-2.5 font-medium">{t.natal.position}</th>
+              <th className="py-2.5 pr-4 font-medium text-right">{t.natal.house}</th>
             </tr>
           </thead>
           <tbody>

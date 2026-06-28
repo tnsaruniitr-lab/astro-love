@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { loveQuestions } from "@/lib/astro/natalReading";
+import { useT } from "./LocaleProvider";
 import type { ChartFacts } from "@/lib/astro/types";
 
 /** Tap-to-open love questions, answered deterministically from the chart. */
 export default function LoveQuestions({ chart }: { chart: ChartFacts }) {
+  const t = useT();
   const items = loveQuestions(chart);
   const [open, setOpen] = useState<number | null>(0);
 
   return (
     <div className="glass p-6 sm:p-7">
-      <h3 className="font-display text-2xl text-cream mb-1">Ask your chart about love</h3>
-      <p className="text-haze text-sm mb-5">
-        Real answers from your placements, no fortune telling. Tap a question.
-      </p>
+      <h3 className="font-display text-2xl text-cream mb-1">{t.natal.askLove}</h3>
+      <p className="text-haze text-sm mb-5">{t.natal.askLoveSub}</p>
       <ul className="space-y-2.5">
         {items.map((it, i) => {
           const isOpen = open === i;
