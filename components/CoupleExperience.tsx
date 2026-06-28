@@ -275,6 +275,7 @@ function ThreadCard({ thread }: { thread: Thread }) {
       </div>
       <p className="font-display text-xl sm:text-2xl text-cream max-w-md mx-auto mt-4">{a.headline}</p>
       <p className="text-sm text-haze/85 max-w-md mx-auto mt-2 leading-snug">{a.why}</p>
+      <p className="text-[11px] text-haze/55 max-w-md mx-auto mt-2 tabular-nums">{a.proof}</p>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-haze">
         {tightness && (
           <span className="px-2.5 py-1 rounded-full bg-gold/10 text-gold/90 uppercase tracking-wider">{tightness}, {a.orb.toFixed(1)}°</span>
@@ -413,6 +414,7 @@ function AspectRow({ asp }: { asp: SynAspect }) {
       <span className="flex-1 min-w-0">
         <span className="block text-[13px] text-cream/90 leading-snug">{asp.headline}</span>
         <span className="block text-[11px] text-haze/80 leading-snug mt-0.5">{asp.why}</span>
+        <span className="block text-[10px] text-haze/55 leading-snug mt-1 tabular-nums">{asp.proof}</span>
       </span>
       <span className="text-xs tabular-nums shrink-0" style={{ color: vc }}>+{asp.points.toFixed(1)}</span>
     </li>

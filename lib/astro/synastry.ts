@@ -6,7 +6,7 @@
 
 import { matchAspect, separation } from "./aspects";
 import { wholeSignHouse } from "./angles";
-import { bodyMeta } from "./zodiac";
+import { bodyMeta, SIGNS } from "./zodiac";
 import type { ChartFacts } from "./types";
 
 // ───────────────────────── config (auditable) ─────────────────────────
@@ -78,6 +78,7 @@ export interface SynAspect {
   valence: "harmonious" | "tension" | "blending";
   headline: string; // plain-language claim (leads the row)
   why: string;      // the grounded reasoning (small, beneath)
+  proof: string;    // the raw chart evidence (exact positions + aspect + orb)
   sentence: string; // headline + why, kept for back-compat
 }
 
@@ -204,6 +205,16 @@ const CONNECTOR: Record<string, string[]> = {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const roleOf = (b: string) => BODY_ROLE[b] ?? b.toLowerCase();
 
+// Exact ecliptic position for the "proof" line, e.g. "11°14′ Aries".
+function fmtPos(lon: number): string {
+  const idx = ((Math.floor(lon / 30) % 12) + 12) % 12;
+  const within = lon - Math.floor(lon / 30) * 30;
+  let d = Math.floor(within);
+  let m = Math.round((within - d) * 60);
+  if (m === 60) { m = 0; d += 1; }
+  return `${d}°${m.toString().padStart(2, "0")}′ ${SIGNS[idx]?.en ?? ""}`;
+}
+
 function pairTheme(a: string, b: string): string {
   const k = pairKey(a, b);
   if (k in PAIR_THEME) return PAIR_THEME[k];
@@ -274,6 +285,8 @@ export function computeSynastry(
       const verb = ASPECT_VERB[m.def.name] ?? "meets";
       const headline = `${nameA}'s ${enA} ${verb} ${nameB}'s ${enB}, ${pairTheme(pa.key, pb.key)}.`;
       const why = pairWhy(pa.key, pb.key, m.def.name, pa.lon, pb.lon, m.def.valence);
+      const orbStr = `${Math.round(m.orb * 10) / 10}°`;
+      const proof = `${nameA}'s ${enA} ${fmtPos(pa.lon)} · ${nameB}'s ${enB} ${fmtPos(pb.lon)} · ${ASPECT_WORD[m.def.name]} ${orbStr} orb`;
       const sentence = `${headline} ${why}`;
 
       aspects.push({
@@ -287,6 +300,7 @@ export function computeSynastry(
         valence: m.def.valence,
         headline,
         why,
+        proof,
         sentence,
       });
     }
