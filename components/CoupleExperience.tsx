@@ -4,7 +4,6 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
-import ThemeSwatches from "./ThemeSwatches";
 import { useTheme } from "./ThemeProvider";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
@@ -79,14 +78,9 @@ export default function CoupleExperience({
 
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
-      <nav className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4 order-2 sm:order-1 text-xs uppercase tracking-[0.2em]">
-          <Link href="/natal" className="text-haze hover:text-gold transition-colors">Natal chart →</Link>
-          <Link href="/love-language" className="text-haze hover:text-gold transition-colors">Love language →</Link>
-        </div>
-        <div className="order-1 sm:order-2">
-          <ThemeSwatches />
-        </div>
+      <nav className="flex items-center justify-center sm:justify-start gap-5 mb-8 text-xs uppercase tracking-[0.2em]">
+        <Link href="/natal" className="text-haze hover:text-gold transition-colors">Natal chart →</Link>
+        <Link href="/love-language" className="text-haze hover:text-gold transition-colors">Love language →</Link>
       </nav>
 
       <header className="text-center">
@@ -97,10 +91,8 @@ export default function CoupleExperience({
           <span className="gold-text">Two charts,</span>{" "}
           <span className="text-cream italic">one connection.</span>
         </h1>
-        <p className="text-haze mt-4 max-w-xl mx-auto">
-          Real synastry: we measure the angles between your planets and theirs, and
-          score them by what actually drives love. Every point is explained below,{" "}
-          <span className="text-cream/80">прозрачная математика.</span>
+        <p className="text-haze mt-4 max-w-md mx-auto">
+          Real compatibility from your two birth charts. Every point explained.
         </p>
       </header>
 
