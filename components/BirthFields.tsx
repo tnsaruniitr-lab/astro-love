@@ -1,10 +1,11 @@
 "use client";
 
-import { CITIES } from "@/lib/geo/cities";
+import CityAutocomplete from "./CityAutocomplete";
+import type { BirthPlace } from "@/lib/geo/geocode";
 
 export interface BirthFormValues {
   name: string;
-  cityId: string;
+  place: BirthPlace | null;
   year: number;
   month: number;
   day: number;
@@ -47,13 +48,10 @@ export default function BirthFields({
       </Field>
 
       <Field label="Birthplace">
-        <select className="field w-full px-3.5 py-2.5" value={v.cityId} onChange={(e) => set("cityId", e.target.value)}>
-          {CITIES.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} · {c.country}
-            </option>
-          ))}
-        </select>
+        <CityAutocomplete value={v.place} onChange={(p) => set("place", p)} />
+        <span className="block text-[11px] text-haze/70 mt-1.5">
+          Type any city worldwide — pick from the list to lock its coordinates &amp; time zone.
+        </span>
       </Field>
 
       <div className="grid grid-cols-3 gap-3">

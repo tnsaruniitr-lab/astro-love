@@ -78,3 +78,20 @@ export const CITIES: City[] = [
 
 export const findCity = (id: string): City | undefined =>
   CITIES.find((c) => c.id === id);
+
+// Convert a curated City into a BirthPlace so server-rendered defaults work
+// without any network call (the live autocomplete uses the geocoding API).
+import type { BirthPlace } from "./geocode";
+
+export const cityToPlace = (c: City): BirthPlace => ({
+  label: c.name,
+  name: c.name,
+  country: c.country,
+  countryCode: c.country,
+  lat: c.lat,
+  lon: c.lon,
+  tz: c.tz,
+});
+
+/** BirthPlace for a curated city id (used for default/demo forms). */
+export const placeForCity = (id: string): BirthPlace => cityToPlace(findCity(id)!);

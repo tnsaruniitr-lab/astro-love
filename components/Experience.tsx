@@ -9,7 +9,6 @@ import ThemeSwatches from "./ThemeSwatches";
 import { useTheme } from "./ThemeProvider";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
-import { findCity } from "@/lib/geo/cities";
 import type { ChartFacts } from "@/lib/astro/types";
 
 const GLYPH_FONT =
@@ -33,15 +32,15 @@ export default function Experience({
     // A short beat keeps the "Reading the sky…" moment.
     await new Promise((r) => setTimeout(r, 250));
     try {
-      const c = findCity(v.cityId);
-      if (!c) throw new Error("Unknown city");
+      const p = v.place;
+      if (!p) throw new Error("Please choose your birthplace from the list");
       setChart(
         computeChart({
           name: v.name || undefined,
-          place: c.name,
+          place: p.label,
           year: v.year, month: v.month, day: v.day, hour: v.hour, minute: v.minute,
           timeKnown: v.timeKnown,
-          lat: c.lat, lon: c.lon, tz: c.tz,
+          lat: p.lat, lon: p.lon, tz: p.tz,
         }),
       );
     } catch (e) {

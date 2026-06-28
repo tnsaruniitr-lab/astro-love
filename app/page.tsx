@@ -1,12 +1,12 @@
 import Experience from "@/components/Experience";
 import { computeChart } from "@/lib/astro/chart";
-import { findCity } from "@/lib/geo/cities";
+import { placeForCity } from "@/lib/geo/cities";
 import type { BirthFormValues } from "@/components/BirthForm";
 
 // Default sample so the page renders a beautiful, populated chart on first load.
 const DEFAULT_FORM: BirthFormValues = {
   name: "",
-  cityId: "moscow",
+  place: placeForCity("moscow"),
   year: 1990,
   month: 5,
   day: 14,
@@ -16,19 +16,19 @@ const DEFAULT_FORM: BirthFormValues = {
 };
 
 export default function Page() {
-  const city = findCity(DEFAULT_FORM.cityId)!;
+  const place = DEFAULT_FORM.place!;
   const chart = computeChart({
     name: DEFAULT_FORM.name || undefined,
-    place: city.name,
+    place: place.label,
     year: DEFAULT_FORM.year,
     month: DEFAULT_FORM.month,
     day: DEFAULT_FORM.day,
     hour: DEFAULT_FORM.hour,
     minute: DEFAULT_FORM.minute,
     timeKnown: DEFAULT_FORM.timeKnown,
-    lat: city.lat,
-    lon: city.lon,
-    tz: city.tz,
+    lat: place.lat,
+    lon: place.lon,
+    tz: place.tz,
   });
 
   return <Experience initialChart={chart} initialForm={DEFAULT_FORM} />;

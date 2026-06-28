@@ -9,7 +9,6 @@ import { useTheme } from "./ThemeProvider";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry, type SynastryResult, type SynAspect } from "@/lib/astro/synastry";
-import { findCity } from "@/lib/geo/cities";
 import type { ChartFacts, ChartInput } from "@/lib/astro/types";
 
 const GLYPH_FONT =
@@ -46,17 +45,17 @@ export default function CoupleExperience({
     setError(null);
     await new Promise((r) => setTimeout(r, 280)); // keep the "Reading the stars…" beat
     try {
-      const toInput = (f: BirthFormValues): ChartInput => {
-        const c = findCity(f.cityId);
-        if (!c) throw new Error("Unknown city");
+      const toInput = (f: BirthFormValues, who: string): ChartInput => {
+        const p = f.place;
+        if (!p) throw new Error(`Please choose ${who}'s birthplace from the list`);
         return {
-          name: f.name || undefined, place: c.name,
+          name: f.name || undefined, place: p.label,
           year: f.year, month: f.month, day: f.day, hour: f.hour, minute: f.minute,
-          timeKnown: f.timeKnown, lat: c.lat, lon: c.lon, tz: c.tz,
+          timeKnown: f.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
         };
       };
-      const inA = toInput(a);
-      const inB = toInput(b);
+      const inA = toInput(a, "Person A");
+      const inB = toInput(b, "Person B");
       const chartA = computeChart(inA);
       const chartB = computeChart(inB);
       const syn = computeSynastry(chartA, chartB, inA.name ?? "Person A", inB.name ?? "Person B");

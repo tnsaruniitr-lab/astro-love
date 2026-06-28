@@ -1,7 +1,7 @@
 import CoupleExperience from "@/components/CoupleExperience";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry } from "@/lib/astro/synastry";
-import { findCity } from "@/lib/geo/cities";
+import { placeForCity } from "@/lib/geo/cities";
 import type { BirthFormValues } from "@/components/BirthFields";
 import type { ChartInput } from "@/lib/astro/types";
 
@@ -10,16 +10,16 @@ export const metadata = {
   description: "Math-based love compatibility from real synastry — every point explained.",
 };
 
-const A: BirthFormValues = { name: "Anna", cityId: "moscow", year: 1990, month: 5, day: 14, hour: 6, minute: 30, timeKnown: true };
-const B: BirthFormValues = { name: "Dmitri", cityId: "spb", year: 1988, month: 8, day: 22, hour: 14, minute: 15, timeKnown: true };
+const A: BirthFormValues = { name: "Anna", place: placeForCity("moscow"), year: 1990, month: 5, day: 14, hour: 6, minute: 30, timeKnown: true };
+const B: BirthFormValues = { name: "Dmitri", place: placeForCity("spb"), year: 1988, month: 8, day: 22, hour: 14, minute: 15, timeKnown: true };
 
 function toInput(f: BirthFormValues): ChartInput {
-  const c = findCity(f.cityId)!;
+  const p = f.place!;
   return {
     name: f.name || undefined,
-    place: c.name,
+    place: p.label,
     year: f.year, month: f.month, day: f.day, hour: f.hour, minute: f.minute,
-    timeKnown: f.timeKnown, lat: c.lat, lon: c.lon, tz: c.tz,
+    timeKnown: f.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
   };
 }
 
