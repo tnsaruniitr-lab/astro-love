@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import ThemeSwatches from "./ThemeSwatches";
 import { useTheme } from "./ThemeProvider";
-import { QUESTIONS, scoreLoveLanguage, type Mode, type LoveLanguageResult } from "@/lib/loveLanguage";
+import LoveLangIcon from "./LoveLangIcon";
+import { QUESTIONS, scoreLoveLanguage, compatList, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
 
 export default function LoveLanguageQuiz() {
   const [answers, setAnswers] = useState<Mode[]>([]);
@@ -85,9 +86,27 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
   const { palette: pal } = useTheme();
   const { primary, secondary, ranking } = result;
 
+  const levelStyle = (level: Level): React.CSSProperties => {
+    const c = level === "Effortless" ? pal.gauge.from : level === "Natural fit" ? pal.aspect.harmonious : pal.aspect.tension;
+    return { background: `${c}22`, color: c };
+  };
+
   return (
     <div className="space-y-5">
       <div className="glass p-6 sm:p-8 text-center reveal-in">
+        <div className="flex justify-center mb-4">
+          <div
+            className="relative flex items-center justify-center rounded-full"
+            style={{
+              width: 116, height: 116,
+              background: "radial-gradient(circle at 50% 35%, rgb(var(--c-gold) / 0.2), rgb(var(--c-panel) / 0.35))",
+              border: "1px solid rgb(var(--c-gold) / 0.3)",
+              boxShadow: "inset 0 1px 0 rgb(var(--c-goldbright) / 0.2)",
+            }}
+          >
+            <span className="text-gold"><LoveLangIcon mode={primary.key} size={62} /></span>
+          </div>
+        </div>
         <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">Your love language</div>
         <h2 className="font-display text-5xl sm:text-6xl tracking-[-0.02em] leading-[0.98] gold-text mt-2 pb-1">{primary.title}</h2>
         <p className="text-cream/85 text-[15px] max-w-md mx-auto mt-3 leading-relaxed">{primary.desc}</p>
@@ -97,7 +116,10 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
           {ranking.map((r, i) => (
             <div key={r.mode.key}>
               <div className="flex justify-between text-[11px] uppercase tracking-wider mb-1">
-                <span className={i === 0 ? "text-gold" : "text-haze/85"}>{i === 0 ? "✦ " : ""}{r.mode.title}</span>
+                <span className={`inline-flex items-center gap-1.5 ${i === 0 ? "text-gold" : "text-haze/85"}`}>
+                  <span className={i === 0 ? "text-gold" : "text-haze/60"}><LoveLangIcon mode={r.mode.key} size={14} /></span>
+                  {r.mode.title}
+                </span>
                 <span className="tabular-nums" style={{ color: i === 0 ? "rgb(var(--c-goldbright))" : "rgb(var(--c-haze))" }}>{r.pct}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-cream/10 overflow-hidden">
@@ -119,6 +141,25 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
           <div className="text-[11px] uppercase tracking-[0.18em] text-haze/90">Speak it to others</div>
           <p className="text-sm text-cream/90 mt-1.5 leading-snug">{primary.speak}</p>
         </div>
+      </div>
+
+      <div className="glass p-6 sm:p-8">
+        <h3 className="font-display text-xl text-cream text-center mb-1">How you pair with each language</h3>
+        <p className="text-xs text-haze text-center mb-5">When your {primary.title} meets someone who speaks…</p>
+        <ul className="space-y-2.5 max-w-2xl mx-auto">
+          {compatList(primary.key).map((row) => (
+            <li key={row.mode.key} className="flex items-start gap-3 rounded-xl bg-cream/[0.03] border border-cream/10 px-4 py-3">
+              <span className="text-gold shrink-0 mt-0.5"><LoveLangIcon mode={row.mode.key} size={30} /></span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-cream/90 text-[15px]">{row.mode.title}</span>
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0" style={levelStyle(row.level)}>{row.level}</span>
+                </div>
+                <p className="text-[13px] text-haze/85 leading-snug mt-1">{row.why}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
