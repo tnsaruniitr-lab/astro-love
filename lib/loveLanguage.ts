@@ -68,25 +68,25 @@ export const QUESTIONS: Question[] = [
     options: [
       { mode: "words", label: "telling you, in detail, how proud they are of how you handled it" },
       { mode: "acts", label: "quietly taking dinner, the dishes and the laundry off your plate" },
-      { mode: "gifts", label: "showing up with your favourite treat, just because" },
+      { mode: "gifts", label: "bringing you flowers or a small gift, just because" },
       { mode: "time", label: "putting the phone away and giving you the whole evening" },
       { mode: "touch", label: "pulling you into a long hug and not letting go" },
     ],
   },
   {
-    prompt: "When your partner takes responsibility without being asked, sorting the bills, booking the trip, you feel…",
+    prompt: "Your partner quietly handles something stressful for you, the bills, a booking, a chore. What means the most is…",
     options: [
-      { mode: "acts", label: "deeply loved, that is exactly it" },
-      { mode: "words", label: "loved, and you'd also love to hear why they did it" },
-      { mode: "time", label: "loved, especially when it frees up time for you both" },
-      { mode: "touch", label: "loved, and you want to hug them for it" },
-      { mode: "gifts", label: "loved, like they just handed you a gift" },
+      { mode: "acts", label: "the plain relief that they just took care of it" },
+      { mode: "words", label: "hearing them say they did it because they love you" },
+      { mode: "time", label: "that it frees the two of you up to relax together" },
+      { mode: "touch", label: "pulling them into a grateful hug for it" },
+      { mode: "gifts", label: "the thought behind it, that they planned it just for you" },
     ],
   },
   {
     prompt: "A small thing that secretly means a lot: when they…",
     options: [
-      { mode: "gifts", label: "bring you a coffee made exactly how you like it" },
+      { mode: "gifts", label: "pick up the exact thing you'd once mentioned wanting" },
       { mode: "words", label: "leave you a sweet note or text in the middle of the day" },
       { mode: "touch", label: "rest a hand on your back as they pass" },
       { mode: "acts", label: "fill up your car or fix the thing without being asked" },
@@ -110,7 +110,7 @@ export const QUESTIONS: Question[] = [
       { mode: "words", label: "to hear 'you've got this, I believe in you'" },
       { mode: "acts", label: "someone to just take a task off your plate" },
       { mode: "time", label: "unhurried time to talk it all through" },
-      { mode: "gifts", label: "a little pick-me-up to soften the day" },
+      { mode: "gifts", label: "a thoughtful little gift that says they were thinking of you" },
     ],
   },
   {
@@ -140,7 +140,7 @@ export const QUESTIONS: Question[] = [
       { mode: "words", label: "your daily 'good morning, I love you' messages" },
       { mode: "time", label: "your unhurried time together" },
       { mode: "acts", label: "the little things they quietly do around you" },
-      { mode: "gifts", label: "the small surprises they'd bring back" },
+      { mode: "gifts", label: "the little gifts or souvenirs they'd bring back" },
     ],
   },
   {
@@ -160,7 +160,7 @@ export const QUESTIONS: Question[] = [
       { mode: "touch", label: "kiss you hello and goodbye" },
       { mode: "words", label: "text you something sweet at lunch" },
       { mode: "time", label: "ask real questions about your day and listen" },
-      { mode: "gifts", label: "leave a little treat where you'll find it" },
+      { mode: "gifts", label: "surprise you with a small present for no reason" },
     ],
   },
   {
