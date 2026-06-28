@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 // Server-side verification of a payment by its order ref. The return query
 // string is only a trigger; entitlement is decided here. Configure with env:
-//   CARECOMPASS_VERIFY_URL    e.g. https://pay.carecompass.me/api/status (?ref=)
+//   CARECOMPASS_VERIFY_URL    override the verify endpoint (defaults to the live
+//                             CareCompass /api/status below)
 //   CARECOMPASS_VERIFY_TOKEN  optional bearer token
 //   CARECOMPASS_EXPECT_AMOUNT expected minor units (default 200 = $2.00)
 //   CARECOMPASS_EXPECT_CURRENCY expected currency (default USD)
@@ -17,17 +18,19 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+// The verify endpoint is live and stable, so default to it — no env var needed
+// for the round-trip to confirm. Override via CARECOMPASS_VERIFY_URL if it moves.
+const DEFAULT_VERIFY_URL = "https://pay.carecompass.me/api/status";
 const testMode = () => process.env.ALLOW_TEST_UNLOCK === "1";
 
 export async function GET(req: Request) {
   const ref = new URL(req.url).searchParams.get("ref");
   if (!ref) return NextResponse.json({ verified: false, pending: false, reason: "missing_ref" }, { status: 400 });
 
-  const base = process.env.CARECOMPASS_VERIFY_URL;
-  if (!base) {
-    if (testMode()) return NextResponse.json({ verified: true, test: true, ref });
-    return NextResponse.json({ verified: false, pending: false, reason: "verify_not_configured", ref });
-  }
+  // Explicit opt-in preview unlock (no real check) — for exercising the UX only.
+  if (testMode()) return NextResponse.json({ verified: true, test: true, ref });
+
+  const base = process.env.CARECOMPASS_VERIFY_URL || DEFAULT_VERIFY_URL;
 
   try {
     const url = `${base}${base.includes("?") ? "&" : "?"}ref=${encodeURIComponent(ref)}`;
