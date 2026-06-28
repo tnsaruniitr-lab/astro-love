@@ -6,6 +6,7 @@ import BirthForm, { type BirthFormValues } from "./BirthForm";
 import ChartWheel from "./ChartWheel";
 import PlanetTable from "./PlanetTable";
 import LoveQuestions from "./LoveQuestions";
+import NavSegments from "./NavSegments";
 import { useTheme } from "./ThemeProvider";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
@@ -52,9 +53,8 @@ export default function Experience({
 
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
-      <nav className="flex items-center justify-center sm:justify-start gap-5 mb-8 text-xs uppercase tracking-[0.2em]">
-        <Link href="/" className="text-haze hover:text-gold transition-colors">← Love compatibility</Link>
-        <Link href="/love-language" className="text-haze hover:text-gold transition-colors">Love language →</Link>
+      <nav className="flex justify-center mb-8">
+        <NavSegments />
       </nav>
       <Header />
 

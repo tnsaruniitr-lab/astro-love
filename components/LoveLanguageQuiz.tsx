@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
+import NavSegments from "./NavSegments";
 import LoveLangIcon from "./LoveLangIcon";
 import { QUESTIONS, scoreLoveLanguage, compatList, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
 
@@ -20,9 +21,8 @@ export default function LoveLanguageQuiz() {
 
   return (
     <main className="relative mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
-      <nav className="flex items-center justify-center sm:justify-start gap-5 mb-8 text-xs uppercase tracking-[0.2em]">
-        <Link href="/" className="text-haze hover:text-gold transition-colors">← Love compatibility</Link>
-        <Link href="/natal" className="text-haze hover:text-gold transition-colors">Natal chart →</Link>
+      <nav className="flex justify-center mb-8">
+        <NavSegments />
       </nav>
 
       <header className="text-center">
