@@ -61,7 +61,7 @@ export const AR: UIStrings = {
     },
     "youTwoAre": "أنتما معًا",
     "leanInto": "اعتمدا على", "gentlyWatch": "انتبها بلطف", "whyThisType": "لماذا هذا النوع", "strongest": "الأقوى",
-    "easyCount": "{n} سهلة", "growthCount": "{n} للنمو",
+    "easyCount": "{n} متناغمة", "growthCount": "{n} للنمو",
     "strongestThread": "أقوى رابط بينكما",
     "strongestThreadTag": "أقوى صلة منفردة بين خريطتيكما.",
     "almostExact": "شبه تام",

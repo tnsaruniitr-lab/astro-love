@@ -153,6 +153,18 @@ const ASPECT_ACTION: Record<string, string> = {
   quincunx: "they keep adjusting to each other", opposition: "they pull like opposite poles",
 };
 
+// Plain-language reference for what each aspect geometry means, for the
+// "why this type" card. The angle is real: a conjunction is the same degree,
+// a trine is 120°, a square 90°, an opposition 180°, etc.
+export const ASPECT_MEANING: Record<string, string> = {
+  conjunction: "same degree, the two energies merge",
+  sextile: "60° apart, an easy, supportive angle",
+  square: "90° apart, friction that pushes growth",
+  trine: "120° apart, an effortless, flowing angle",
+  quincunx: "150° apart, an offbeat angle that asks for adjustment",
+  opposition: "180° apart, opposite poles that attract and pull",
+};
+
 // Neutral topic (the DOMAIN at stake), keyed by sorted pair. The verb and the
 // why carry the valence, so a theme reads true whether the contact flows or
 // rubs (e.g. "pulls against ... warmth and affection").

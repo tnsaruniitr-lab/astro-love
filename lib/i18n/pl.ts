@@ -61,7 +61,7 @@ export const PL: UIStrings = {
     },
     "youTwoAre": "Wy dwoje jesteście",
     "leanInto": "Postaw na", "gentlyWatch": "Łagodnie obserwuj", "whyThisType": "Dlaczego ten typ", "strongest": "najsilniejsze",
-    "easyCount": "{n} łatwych", "growthCount": "{n} do rozwoju",
+    "easyCount": "{n} płynnych", "growthCount": "{n} do rozwoju",
     "strongestThread": "Wasza najsilniejsza nić",
     "strongestThreadTag": "najsilniejszy pojedynczy kontakt między waszymi kosmogramami.",
     "almostExact": "niemal dokładna",

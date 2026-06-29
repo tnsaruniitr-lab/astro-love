@@ -11,7 +11,7 @@ import { useT } from "./LocaleProvider";
 import { fill } from "@/lib/i18n";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
-import { computeSynastry, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
+import { computeSynastry, BODY_ROLE, ASPECT_MEANING, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
 import {
   archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
   tendToList, flowGrowStory,
@@ -32,6 +32,8 @@ export interface CoupleResult {
 const ASPECT_GLYPH: Record<string, string> = {
   conjunction: "☌", sextile: "⚹", square: "□", trine: "△", quincunx: "⚻", opposition: "☍",
 };
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const COMPAT_KEY = "am_compat";
 
@@ -335,7 +337,7 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
       </div>
 
       <div className="mt-6 max-w-2xl mx-auto rounded-2xl border border-gold/15 bg-gold/[0.04] px-4 py-4">
-        <div className="text-[10px] uppercase tracking-[0.24em] text-gold/80">{t.compat.whyThisType}</div>
+        <div className="text-[10px] uppercase tracking-[0.24em] text-gold/80 text-center">{t.compat.whyThisType}</div>
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
           <span className="inline-flex items-baseline gap-1.5">
             <span className="text-cream/90">{reading.topFacet.label}</span>
@@ -348,15 +350,33 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
             <span style={{ color: pal.aspect.tension }}>{fill(t.compat.growthCount, { n: reading.growCount })}</span>
           </span>
         </div>
+
+        <p className="text-[11px] text-haze/70 leading-relaxed mt-3 text-center max-w-lg mx-auto">
+          Flowing contacts (trines and sextiles) come naturally; growth contacts (squares and oppositions)
+          take effort and deepen you. Weighted by how exact each one is, your bond carries
+          {" "}<span className="tabular-nums" style={{ color: pal.aspect.harmonious }}>{reading.flowPoints}</span> flowing
+          {" "}to <span className="tabular-nums" style={{ color: pal.aspect.tension }}>{reading.growPoints}</span> growth points,
+          so it leans {reading.tilt === "harmonious" ? "toward ease" : "toward growth"}.
+        </p>
+
         {a && (
-          <div className="mt-3 pt-3 border-t border-cream/10 text-center">
+          <div className="mt-4 pt-4 border-t border-cream/10 text-center">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-haze/60 mb-2">The contact that anchors it</div>
             <div className="flex items-center justify-center gap-2 text-2xl" style={{ fontFamily: GLYPH_FONT }}>
               <span style={{ color: pal.personA }}>{aMeta?.glyph ?? "↑"}</span>
               <span style={{ color: vc, fontSize: "0.8em" }}>{ASPECT_GLYPH[a.aspect]}</span>
               <span style={{ color: pal.personB }}>{bMeta?.glyph ?? "↑"}</span>
             </div>
-            <p className="text-[13px] text-cream/85 mt-2 leading-snug">{a.headline}</p>
-            <p className="text-[10px] text-haze/55 mt-1 tabular-nums">{a.proof}</p>
+            <p className="text-[13px] text-cream/90 mt-2 leading-snug">{a.headline}</p>
+            <p className="text-[12px] text-haze/85 mt-1 leading-snug max-w-md mx-auto">{a.why}</p>
+            {(BODY_ROLE[a.aBody] || BODY_ROLE[a.bBody]) && (
+              <p className="text-[11px] text-haze/65 mt-2 leading-snug max-w-md mx-auto">
+                <span className="text-cream/75">{a.aBody}</span> is {BODY_ROLE[a.aBody] ?? "a key point"};
+                {" "}<span className="text-cream/75">{a.bBody}</span> is {BODY_ROLE[a.bBody] ?? "a key point"}.
+                {" "}{cap(a.aspect)}: {ASPECT_MEANING[a.aspect] ?? "a notable angle"}.
+              </p>
+            )}
+            <p className="text-[10px] text-haze/50 mt-2 tabular-nums">{a.proof}</p>
           </div>
         )}
       </div>
