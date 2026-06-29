@@ -30,7 +30,7 @@ export const EN: UIStrings = {
     },
     youTwoAre: "You two are",
     leanInto: "Lean into", gentlyWatch: "Gently watch", whyThisType: "Why this type", strongest: "strongest",
-    easyCount: "{n} easy", growthCount: "{n} growth",
+    easyCount: "{n} flowing", growthCount: "{n} growth",
     strongestThread: "Your strongest thread",
     strongestThreadTag: "the single strongest contact between your charts.",
     almostExact: "almost exact", remarkablyTight: "remarkably tight",

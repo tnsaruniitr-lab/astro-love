@@ -96,6 +96,7 @@ export interface ArchetypeReading {
   topFacet: { key: Facet; label: string; value: number };
   tilt: "harmonious" | "dynamic";
   flowCount: number; growCount: number;
+  flowPoints: number; growPoints: number; // weighted by orb tightness, this drives the tilt
   anchor: SynAspect | null; // the strongest contact that exemplifies the type
   proof: string;
 }
@@ -108,13 +109,15 @@ export function archetypeReading(syn: SynastryResult): ArchetypeReading {
   const hasTop = syn.subscores[top] > 0;
   const detail = (hasTop ? ARCHETYPE_DETAIL[`${top}:${tl}`] : null) ?? BAND_DETAIL_FALLBACK;
   const { flow, grow } = flowGrow(syn);
+  const flowPoints = Math.round(flow.reduce((s, a) => s + a.points, 0));
+  const growPoints = Math.round(grow.reduce((s, a) => s + a.points, 0));
   const anchor = strongestThread(syn)?.aspect ?? null;
   return {
     name: arch.name, definition: arch.definition, line: arch.line,
     blurb: detail.blurb, leanInto: detail.leanInto, watch: detail.watch,
     topFacet: { key: top, label: FACET_LABEL[top], value: syn.subscores[top] },
-    tilt: tl, flowCount: flow.length, growCount: grow.length, anchor,
-    proof: `Strongest dimension: ${FACET_LABEL[top]} ${syn.subscores[top]} of 100. Balance: ${flow.length} easy vs ${grow.length} growth contacts.`,
+    tilt: tl, flowCount: flow.length, growCount: grow.length, flowPoints, growPoints, anchor,
+    proof: `Strongest dimension: ${FACET_LABEL[top]} ${syn.subscores[top]} of 100. Weighted balance: ${flowPoints} flowing vs ${growPoints} growth points.`,
   };
 }
 

@@ -61,7 +61,7 @@ export const ES: UIStrings = {
     },
     "youTwoAre": "Vosotros dos sois",
     "leanInto": "Apóyate en", "gentlyWatch": "Cuida con suavidad", "whyThisType": "Por qué este tipo", "strongest": "más fuerte",
-    "easyCount": "{n} fáciles", "growthCount": "{n} de crecimiento",
+    "easyCount": "{n} fluidos", "growthCount": "{n} de crecimiento",
     "strongestThread": "Vuestro vínculo más fuerte",
     "strongestThreadTag": "el contacto más fuerte entre vuestras cartas.",
     "almostExact": "casi exacto",

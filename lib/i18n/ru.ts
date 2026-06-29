@@ -61,7 +61,7 @@ export const RU: UIStrings = {
     },
     "youTwoAre": "Вы двое —",
     "leanInto": "Опирайтесь на", "gentlyWatch": "Мягко следите", "whyThisType": "Почему этот тип", "strongest": "сильнейшее",
-    "easyCount": "{n} лёгких", "growthCount": "{n} на рост",
+    "easyCount": "{n} плавных", "growthCount": "{n} на рост",
     "strongestThread": "Ваша самая крепкая нить",
     "strongestThreadTag": "самый сильный контакт между вашими картами.",
     "almostExact": "почти точный",
