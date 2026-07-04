@@ -163,5 +163,12 @@ export const PL: UIStrings = {
     "compat": "Widziałeś swój wynik i swój typ. Otwórz wszystkie pozostałe wglądy, każdy z astrologicznym uzasadnieniem.",
     "natal": "Otwórz każdą odpowiedź, którą twój kosmogram kryje o miłości, z dokładnymi pozycjami za każdą z nich.",
     "love": "Zobacz, jak pasujesz do każdego innego języka miłości, o co prosić i co mówi nauka."
+  },
+  "reading": {
+    "ease": "Łatwość", "intensity": "Intensywność",
+    "axesExplain": "Łatwość pokazuje, w którą stronę skłaniają się wasze kontakty; intensywność — jak wiele się między wami dzieje.",
+    "scoreRange": "Bez dokładnej godziny urodzenia wynik może mieścić się w zakresie {min}–{max}.",
+    "proseTitle": "Wasz odczyt", "proseWriting": "Piszemy wasz odczyt na podstawie faktów z kosmogramu…",
+    "sampleCta": "Zobacz przykładową parę"
   }
 };

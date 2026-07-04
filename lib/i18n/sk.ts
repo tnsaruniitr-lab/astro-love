@@ -163,5 +163,12 @@ export const SK: UIStrings = {
     "compat": "Videli ste svoje skóre a svoj typ. Otvorte všetky ďalšie postrehy, každý s astrologickým dôkazom.",
     "natal": "Otvorte všetky odpovede, ktoré váš horoskop ukrýva o láske, s presnými polohami za každou.",
     "love": "Zistite, ako sa hodíte ku každému inému jazyku lásky, o čo žiadať a čo hovorí veda."
+  },
+  "reading": {
+    "ease": "Ľahkosť", "intensity": "Intenzita",
+    "axesExplain": "Ľahkosť ukazuje, kam sa vaše kontakty prikláňajú; intenzita — koľko sa medzi vami deje.",
+    "scoreRange": "Bez presného času narodenia sa výsledok môže pohybovať v rozmedzí {min}–{max}.",
+    "proseTitle": "Vaše čítanie", "proseWriting": "Píšeme vaše čítanie podľa faktov z karty…",
+    "sampleCta": "Pozrieť ukážkový pár"
   }
 };
