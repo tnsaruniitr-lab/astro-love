@@ -33,11 +33,11 @@ function bottomFacet(sub: SynastryResult["subscores"]): Facet {
   return FACET_PRIORITY.reduce((worst, f) => (sub[f] < sub[worst] ? f : worst), FACET_PRIORITY[0]);
 }
 
-/** Harmonious-leaning vs dynamic-leaning, by total points (conjunctions count as flow). */
+/** Harmonious-leaning vs dynamic-leaning, from the engine's signed balance.
+ *  Pair-aware conjunction valence (binding Saturn/Pluto contacts count as
+ *  tension) means dynamic is genuinely reachable, not dead copy. */
 export function tilt(syn: SynastryResult): "harmonious" | "dynamic" {
-  let pos = 0, neg = 0;
-  for (const a of syn.aspects) (a.valence === "tension" ? (neg += a.points) : (pos += a.points));
-  return pos >= neg ? "harmonious" : "dynamic";
+  return syn.flowPoints >= syn.tensionPoints ? "harmonious" : "dynamic";
 }
 
 // ───────────────────────── couple archetype ─────────────────────────
@@ -109,8 +109,8 @@ export function archetypeReading(syn: SynastryResult): ArchetypeReading {
   const hasTop = syn.subscores[top] > 0;
   const detail = (hasTop ? ARCHETYPE_DETAIL[`${top}:${tl}`] : null) ?? BAND_DETAIL_FALLBACK;
   const { flow, grow } = flowGrow(syn);
-  const flowPoints = Math.round(flow.reduce((s, a) => s + a.points, 0));
-  const growPoints = Math.round(grow.reduce((s, a) => s + a.points, 0));
+  const flowPoints = Math.round(syn.flowPoints);
+  const growPoints = Math.round(syn.tensionPoints);
   const anchor = strongestThread(syn)?.aspect ?? null;
   return {
     name: arch.name, definition: arch.definition, line: arch.line,

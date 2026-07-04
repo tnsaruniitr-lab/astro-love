@@ -52,6 +52,36 @@ export function matchAspect(sep: number, keyA: string, keyB: string): AspectMatc
   return best;
 }
 
+// ───────── pair-aware conjunction valence ─────────
+// A conjunction fuses two energies, but WHAT fuses decides how it feels:
+// Venus meeting Jupiter flows; Saturn or Pluto clamping a personal point
+// binds and frictions. One shared table so the score, the copy, and the
+// wheel colors never disagree. Non-conjunctions keep the geometry valence.
+
+const PERSONAL_PTS = new Set(["Sun", "Moon", "Mercury", "Venus", "Mars", "Ascendant", "Midheaven"]);
+const HEAVY = new Set(["Saturn", "Pluto"]); // binding/compulsive when on a personal point
+const VOLATILE_WITH_MARS = new Set(["Uranus", "Neptune"]); // erratic / undermining drive
+const SOFT = new Set(["Venus", "Moon", "Sun", "Ascendant"]);
+
+export type Valence = "harmonious" | "tension" | "blending";
+
+/** Valence of a specific aspect between two named points. */
+export function pairValence(aspect: AspectName, keyA: string, keyB: string): Valence {
+  if (aspect !== "conjunction") {
+    return ASPECTS.find((d) => d.name === aspect)!.valence;
+  }
+  const heavyOnPersonal =
+    (HEAVY.has(keyA) && PERSONAL_PTS.has(keyB)) || (HEAVY.has(keyB) && PERSONAL_PTS.has(keyA));
+  if (heavyOnPersonal) return "tension";
+  const marsVolatile =
+    (keyA === "Mars" && VOLATILE_WITH_MARS.has(keyB)) || (keyB === "Mars" && VOLATILE_WITH_MARS.has(keyA));
+  if (marsVolatile) return "tension";
+  const jupiterSoft =
+    (keyA === "Jupiter" && SOFT.has(keyB)) || (keyB === "Jupiter" && SOFT.has(keyA));
+  if (jupiterSoft) return "harmonious";
+  return "blending";
+}
+
 /** All natal aspects among a chart's own planets (de-duplicated unordered pairs). */
 export function natalAspects(planets: PlacedBody[]): NatalAspect[] {
   const out: NatalAspect[] = [];
@@ -68,7 +98,7 @@ export function natalAspects(planets: PlacedBody[]): NatalAspect[] {
           aspect: m.def.name,
           angle: sep,
           orb: Math.round(m.orb * 100) / 100,
-          valence: m.def.valence,
+          valence: pairValence(m.def.name, p.body, q.body),
         });
       }
     }
