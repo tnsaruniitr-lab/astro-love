@@ -16,6 +16,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SynastryResult } from "../astro/synastry";
 import type { ChartFacts } from "../astro/types";
 import { archetypeReading } from "../astro/insights";
+import { contactFacts } from "../astro/enrich";
 
 const WRITER_MODEL = process.env.WRITER_MODEL || "claude-opus-4-8";
 const FAITHFULNESS_MODEL = process.env.FAITHFULNESS_MODEL ?? "claude-haiku-4-5";
@@ -63,6 +64,17 @@ interface FactContract {
     valence: string;
     proof: string;
     timeSensitive?: boolean;
+    // Deterministic technical mechanics the writer may reason over (never
+    // invent beyond these): the aspect's element/modality and any dignity.
+    mechanics: {
+      aspect: string;
+      orbTier: string;
+      sharedElement: string | null;
+      aModality: string;
+      bModality: string;
+      mutualReception: boolean;
+      oneWayReception: boolean;
+    };
   }>;
   overlays: Array<{ id: string; sentence: string }>;
   warnings: string[];
@@ -83,13 +95,25 @@ function buildFactContract(syn: SynastryResult, locale: string): FactContract {
     // magnitudes (points/bonus) are deliberately omitted — grounding needs the
     // named contact and its proof, not the weight, and leaking the rubric into
     // the prompt/logs invites magnitude editorializing.
-    aspects: syn.aspects.slice(0, 20).map((a) => ({
-      id: a.id,
-      headline: a.headline,
-      valence: a.valence,
-      proof: a.proof,
-      ...(a.timeSensitive ? { timeSensitive: true } : {}),
-    })),
+    aspects: syn.aspects.slice(0, 20).map((a) => {
+      const f = contactFacts(a);
+      return {
+        id: a.id,
+        headline: a.headline,
+        valence: a.valence,
+        proof: a.proof,
+        ...(a.timeSensitive ? { timeSensitive: true } : {}),
+        mechanics: {
+          aspect: f.aspect,
+          orbTier: f.orbTier,
+          sharedElement: f.sharedElement,
+          aModality: f.aModality,
+          bModality: f.bModality,
+          mutualReception: f.mutualReception,
+          oneWayReception: !f.mutualReception && (f.aInBRuled || f.bInARuled),
+        },
+      };
+    }),
     overlays: syn.overlays.map((o) => ({ id: o.id, sentence: o.sentence })),
     warnings: syn.warnings,
   };
@@ -123,8 +147,10 @@ const WRITER_SYSTEM = `You write the paid relationship reading for AstroMatch, a
 
 You receive computed astrological FACTS about one couple: inter-chart aspects (each with a stable id and an exact proof line), house overlays, sub-scores, and a two-axis score (ease = which way the contacts lean; intensity = how much is going on).
 
+DEPTH — this is what people pay for. Each aspect carries "mechanics": its element (a trine shares an element), the two planets' modality (cardinal initiates, fixed sustains, mutable adapts), the orb tier (exact = one of the loudest notes), and dignity. When mechanics.mutualReception is true, SAY SO and explain it plainly — the two planets each sit in a sign the other rules, so they host each other and each makes the other stronger; it is the rarest and strongest cooperative signature, never skip it. Reason from these mechanics like an astrologer showing their work, not a horoscope column.
+
 ABSOLUTE RULES — the product's credibility depends on them:
-- Never invent, assume, or embellish a placement, aspect, sign, or house that is not in the supplied facts. If a fact isn't there, it doesn't exist.
+- Never invent, assume, or embellish a placement, aspect, sign, or house that is not in the supplied facts (including the mechanics). If a fact isn't there, it doesn't exist.
 - Every astrological claim you make must be traceable to a fact id. List every fact id you drew on in used_fact_ids (at least 4).
 - Facts marked timeSensitive depend on an unknown birth time — if you use one, say so naturally ("if the birth time holds…").
 - Never predict events, dates, breakups, marriages, pregnancies, health or money outcomes. The chart shows how they relate, not what will happen. No fatalism: tension contacts are growth material, never doom.

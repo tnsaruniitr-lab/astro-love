@@ -16,7 +16,8 @@
 // Run: npm run test:golden
 
 import { computeChart } from "../lib/astro/chart";
-import { computeSynastry } from "../lib/astro/synastry";
+import { computeSynastry, type SynAspect } from "../lib/astro/synastry";
+import { contactFacts } from "../lib/astro/enrich";
 import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
 import { coupleScoreRange } from "../lib/astro/uncertainty";
@@ -184,6 +185,21 @@ ok(archs.size >= 3, "archetype variety: ≥3 distinct couple types on the fixtur
 const det1 = computeSynastry(FIX[0], FIX[1]).score;
 const det2 = computeSynastry(FIX[0], FIX[1]).score;
 ok(det1 === det2, "deterministic on re-run");
+
+// Contact enrichment — deterministic technical facts (no LLM).
+const vsContact: SynAspect = {
+  id: "sa1", aBody: "Venus", bBody: "Saturn",
+  aLon: 270 + 28 + 7 / 60, bLon: 30 + 27 + 5 / 60, // Venus 28°07′ Cap, Saturn 27°05′ Tau
+  aspect: "trine", orb: 1.0, points: 5.8, valence: "harmonious",
+  headline: "", why: "", proof: "", sentence: "",
+};
+const vf = contactFacts(vsContact);
+ok(vf.mutualReception === true, "Venus(Cap)△Saturn(Tau) is a mutual reception (each in the other's domicile)");
+ok(vf.sharedElement === "earth", "same-element trine detected as earth", `${vf.sharedElement}`);
+ok(vf.aModality === "cardinal" && vf.bModality === "fixed", "modality read correctly (cardinal/fixed)");
+ok(vf.orbTier === "exact", "1° orb tiers as near-exact");
+const noRecep = contactFacts({ ...vsContact, aBody: "Sun", bBody: "Moon", aLon: 15, bLon: 135 });
+ok(noRecep.mutualReception === false && noRecep.sharedElement === "fire", "Sun(Aries)△Moon(Leo): fire, no reception");
 
 // Pair-aware conjunction valence.
 ok(pairValence("conjunction", "Mars", "Pluto") === "tension", "Mars☌Pluto reads as tension");

@@ -12,6 +12,7 @@ import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry, BODY_ROLE, ASPECT_MEANING, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
 import { coupleScoreRange, type ScoreRange } from "@/lib/astro/uncertainty";
+import { contactFacts, enrichSections } from "@/lib/astro/enrich";
 import { useReading } from "@/lib/useReading";
 import type { CoupleProse } from "@/lib/server/writer";
 import {
@@ -43,6 +44,15 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const COMPAT_KEY = "am_compat";
 
+// The staged "reading the sky" ritual, played after the (instant) compute.
+const LOAD_STAGES = [
+  "Casting both birth charts",
+  "Placing Venus, Mars and the Moon",
+  "Measuring the angles between you",
+  "Finding where your planets share a home",
+  "Reading what the degrees say",
+];
+
 export default function CoupleExperience({
   initialA,
   initialB,
@@ -58,6 +68,7 @@ export default function CoupleExperience({
   const [b, setB] = useState(initialB);
   const [result, setResult] = useState<CoupleResult | null>(initialResult);
   const [loading, setLoading] = useState(false);
+  const [loadStage, setLoadStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // 0 = initial/SSR or restored result (show everything). Each Calculate bumps
   // this and remounts <Result> into the staged tap-to-reveal "ritual".
@@ -99,18 +110,35 @@ export default function CoupleExperience({
   }, []);
 
   async function calculate() {
-    setLoading(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 280)); // keep the "Reading the stars…" beat
+    // Compute first (instant, in-browser) so a bad input errors immediately —
+    // no point playing 3s of theater and then failing.
+    let res: CoupleResult;
     try {
-      setResult(compute(a, b));
-      setRevealKey((k) => k + 1);
-      try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
+      res = compute(a, b);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setLoading(false);
+      return;
     }
+    try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
+
+    // Deliberate staged reveal — the "reading the sky" ritual. The math is done;
+    // the pause builds anticipation. Honor reduced-motion with a short beat.
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    setLoading(true);
+    if (reduce) {
+      setLoadStage(LOAD_STAGES.length - 1);
+      await new Promise((r) => setTimeout(r, 300));
+    } else {
+      for (let i = 0; i < LOAD_STAGES.length; i++) {
+        setLoadStage(i);
+        await new Promise((r) => setTimeout(r, 720));
+      }
+    }
+    setResult(res);
+    setRevealKey((k) => k + 1);
+    setLoading(false);
+    setLoadStage(0);
   }
 
   // Let a cold visitor feel the wow-moment before entering two full birth
@@ -154,15 +182,41 @@ export default function CoupleExperience({
         {error && <p className="mt-3 text-sm text-rose/90">{error}</p>}
       </div>
 
-      {result
-        ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
-        : <EmptyState onSample={loadSample} />}
+      {loading
+        ? <CalculatingLoader stage={loadStage} />
+        : result
+          ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
+          : <EmptyState onSample={loadSample} />}
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
         <p>{t.compat.footer1}</p>
         <p className="text-haze/40">{t.compat.footer2}</p>
       </footer>
     </main>
+  );
+}
+
+// The staged celestial loader — two bodies orbiting a bright core, with the
+// ritual line advancing beneath. Reduced-motion users get the final stage only.
+function CalculatingLoader({ stage }: { stage: number }) {
+  return (
+    <section className="mt-12 mb-2 flex flex-col items-center gap-7 py-10" aria-live="polite" aria-busy="true">
+      <div className="relative motion-reduce:hidden" style={{ width: 132, height: 132 }}>
+        <div className="absolute inset-0 rounded-full border border-gold/15" />
+        <div className="absolute rounded-full border border-rose/25" style={{ inset: 24 }} />
+        <div className="absolute top-1/2 left-1/2 rounded-full" style={{ width: 12, height: 12, marginTop: -6, marginLeft: -6, background: "radial-gradient(circle at 40% 35%, #fff, rgb(var(--c-goldbright)))", boxShadow: "0 0 20px 4px rgb(var(--c-goldbright) / 0.5)" }} />
+        <div className="absolute inset-0 animate-spin" style={{ animationDuration: "3.2s" }}>
+          <span className="absolute left-1/2 rounded-full" style={{ top: -5, marginLeft: -5, width: 10, height: 10, background: "rgb(var(--c-gold))", boxShadow: "0 0 12px 2px rgb(var(--c-gold) / 0.7)" }} />
+        </div>
+        <div className="absolute animate-spin" style={{ inset: 24, animationDuration: "2.1s", animationDirection: "reverse" }}>
+          <span className="absolute left-1/2 rounded-full" style={{ top: -4, marginLeft: -4, width: 8, height: 8, background: "rgb(var(--c-rose))", boxShadow: "0 0 12px 2px rgb(var(--c-rose) / 0.7)" }} />
+        </div>
+      </div>
+      <p key={stage} className="font-display italic text-lg sm:text-xl text-goldbright text-center fade-up px-6">{LOAD_STAGES[stage]}…</p>
+      <div className="w-52 h-[3px] rounded-full bg-cream/10 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${((stage + 1) / LOAD_STAGES.length) * 100}%`, background: "linear-gradient(90deg, rgb(var(--c-rose)), rgb(var(--c-goldbright)))", transition: "width 700ms cubic-bezier(.4,0,.2,1)" }} />
+      </div>
+    </section>
   );
 }
 
@@ -233,7 +287,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     ...(unlocked && (prose || proseLoading)
       ? [{ key: "prose", hint: t.reading.proseTitle, node: <ProseCard prose={prose as CoupleProse | null} loading={proseLoading} /> }]
       : []),
-    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} /> }] : []),
+    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} names={syn.names} /> }] : []),
     { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
     { key: "tend", hint: h.tend, node: <TendCard syn={syn} /> },
     { key: "flowgrow", hint: h.flowgrow, node: <FlowGrowCard syn={syn} /> },
@@ -467,7 +521,10 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
           so it leans {reading.tilt === "harmonious" ? "toward ease" : "toward growth"}.
         </p>
 
-        {a && (
+        {a && (() => {
+          const af = contactFacts(a);
+          const tier: Record<string, string> = { exact: "near-exact", tight: "tight", moderate: "moderate", wide: "wide" };
+          return (
           <div className="mt-4 pt-4 border-t border-cream/10 text-center">
             <div className="text-[10px] uppercase tracking-[0.2em] text-haze/60 mb-2">The contact that anchors it</div>
             <div className="flex items-center justify-center gap-2 text-2xl" style={{ fontFamily: GLYPH_FONT }}>
@@ -476,6 +533,18 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
               <span style={{ color: pal.personB }}>{bMeta?.glyph ?? "↑"}</span>
             </div>
             <p className="text-[13px] text-cream/90 mt-2 leading-snug">{a.headline}</p>
+            {/* Technical taste — the deterministic facts, free tier. The full
+                breakdown (geometry, dignity, meaning) lives in the unlocked deck. */}
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-[9.5px] uppercase tracking-wider font-medium">
+              <span className="px-2 py-0.5 rounded-full" style={{ background: `${vc}22`, color: vc }}>{tier[af.orbTier]}, {a.orb.toFixed(1)}°</span>
+              {af.sharedElement && <span className="px-2 py-0.5 rounded-full bg-cream/[0.06] text-haze/85">{af.sharedElement} {a.aspect}</span>}
+              {af.mutualReception && <span className="px-2 py-0.5 rounded-full bg-gold/15 text-goldbright border border-gold/30">✦ mutual reception</span>}
+            </div>
+            {af.mutualReception && (
+              <p className="text-[11.5px] text-goldbright/90 mt-2 leading-snug max-w-md mx-auto">
+                A rare mutual reception: {a.aBody} sits in {af.aSign} ({a.bBody}&apos;s sign) while {a.bBody} sits in {af.bSign} ({a.aBody}&apos;s sign) — each planet in the other&apos;s home, mutually strengthening.
+              </p>
+            )}
             <p className="text-[12px] text-haze/85 mt-1 leading-snug max-w-md mx-auto">{a.why}</p>
             {(BODY_ROLE[a.aBody] || BODY_ROLE[a.bBody]) && (
               <p className="text-[11px] text-haze/65 mt-2 leading-snug max-w-md mx-auto">
@@ -486,36 +555,60 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
             )}
             <p className="text-[10px] text-haze/50 mt-2 tabular-nums">{a.proof}</p>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
 }
 
-function ThreadCard({ thread }: { thread: Thread }) {
+function ThreadCard({ thread, names }: { thread: Thread; names: { a: string; b: string } }) {
   const { palette: pal } = useTheme();
   const t = useT();
-  const { aspect: a, tightness } = thread;
+  const { aspect: a } = thread;
   const aMeta = BODIES.find((x) => x.key === a.aBody);
   const bMeta = BODIES.find((x) => x.key === a.bBody);
   const vc = pal.aspect[a.valence];
+  // Deterministic technical depth (mutual reception, element, modality, orb
+  // tier) — computed, never guessed, and fully available with no API key.
+  const facts = contactFacts(a);
+  const sections = enrichSections(a, names);
+  const tierLabel: Record<string, string> = { exact: "near-exact", tight: "tight", moderate: "moderate", wide: "wide" };
+  const kickerColor = (kind: string) => (kind === "dignity" ? pal.aspect.blending : kind === "watch" ? pal.aspect.tension : pal.gauge.from);
+
   return (
-    <div className="glass p-6 sm:p-8 text-center stagger">
-      <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.strongestThread}</div>
-      <div className="mt-3 flex items-center justify-center gap-3 text-4xl" style={{ fontFamily: GLYPH_FONT }}>
-        <span className="planet-pop" style={{ color: pal.personA, animationDelay: "0s" }}>{aMeta?.glyph ?? "↑"}</span>
-        <span className="planet-pop" style={{ color: vc, fontSize: "0.8em", animationDelay: "0.12s", filter: `drop-shadow(0 0 6px ${vc})` }}>{ASPECT_GLYPH[a.aspect]}</span>
-        <span className="planet-pop" style={{ color: pal.personB, animationDelay: "0.24s" }}>{bMeta?.glyph ?? "↑"}</span>
+    <div className="glass overflow-hidden stagger">
+      <div className="px-6 sm:px-8 pt-6 pb-5 text-center border-b border-cream/10">
+        <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.strongestThread}</div>
+        <div className="mt-3 flex items-center justify-center gap-3 text-4xl" style={{ fontFamily: GLYPH_FONT }}>
+          <span className="planet-pop" style={{ color: pal.personA, animationDelay: "0s" }}>{aMeta?.glyph ?? "↑"}</span>
+          <span className="planet-pop" style={{ color: vc, fontSize: "0.8em", animationDelay: "0.12s", filter: `drop-shadow(0 0 6px ${vc})` }}>{ASPECT_GLYPH[a.aspect]}</span>
+          <span className="planet-pop" style={{ color: pal.personB, animationDelay: "0.24s" }}>{bMeta?.glyph ?? "↑"}</span>
+        </div>
+        <p className="font-display text-xl sm:text-2xl text-cream max-w-md mx-auto mt-4">{a.headline}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[10px] uppercase tracking-wider font-medium">
+          <span className="px-2.5 py-1 rounded-full" style={{ background: `${vc}22`, color: vc }}>{tierLabel[facts.orbTier]}, {a.orb.toFixed(1)}°</span>
+          {facts.sharedElement && (
+            <span className="px-2.5 py-1 rounded-full bg-cream/[0.06] text-haze">{facts.sharedElement} {a.aspect}</span>
+          )}
+          {facts.mutualReception && (
+            <span className="px-2.5 py-1 rounded-full bg-gold/15 text-goldbright border border-gold/30">✦ mutual reception</span>
+          )}
+        </div>
       </div>
-      <p className="font-display text-xl sm:text-2xl text-cream max-w-md mx-auto mt-4">{a.headline}</p>
-      <p className="text-sm text-haze/85 max-w-md mx-auto mt-2 leading-snug">{a.why}</p>
-      <p className="text-[11px] text-haze/55 max-w-md mx-auto mt-2 tabular-nums">{a.proof}</p>
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-haze">
-        {tightness && (
-          <span className="px-2.5 py-1 rounded-full bg-gold/10 text-gold/90 uppercase tracking-wider">{tightness}, {a.orb.toFixed(1)}°</span>
-        )}
-        <span>{t.compat.strongestThreadTag}</span>
-      </div>
+
+      {sections.map((s) => (
+        <div
+          key={s.kind}
+          className="px-6 sm:px-8 py-4 border-b border-cream/[0.06] text-left"
+          style={s.spotlight ? { background: `linear-gradient(120deg, ${pal.aspect.tension}14, transparent 70%)` } : undefined}
+        >
+          <div className="text-[10px] uppercase tracking-[0.18em] mb-1.5" style={{ color: kickerColor(s.kind) }}>{s.kicker}</div>
+          <p className="text-[14.5px] text-cream/90 leading-relaxed">{s.body}</p>
+        </div>
+      ))}
+
+      <p className="px-6 sm:px-8 py-3 text-[11px] text-haze/60 tabular-nums leading-relaxed overflow-x-auto whitespace-nowrap">{a.proof}</p>
     </div>
   );
 }
