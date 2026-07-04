@@ -1,17 +1,19 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
 import TopNav from "./TopNav";
 import PaywallGate from "./Paywall";
-import { useUnlocked } from "@/lib/entitlement";
 import { useTheme } from "./ThemeProvider";
-import { useT } from "./LocaleProvider";
+import { useLocale, useT } from "./LocaleProvider";
 import { fill } from "@/lib/i18n";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry, BODY_ROLE, ASPECT_MEANING, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
+import { coupleScoreRange, type ScoreRange } from "@/lib/astro/uncertainty";
+import { useReading } from "@/lib/useReading";
+import type { CoupleProse } from "@/lib/server/writer";
 import {
   archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
   tendToList, flowGrowStory,
@@ -27,6 +29,10 @@ export interface CoupleResult {
   a: ChartFacts;
   b: ChartFacts;
   syn: SynastryResult;
+  /** The raw inputs behind the charts — needed for the server gate + prose. */
+  inputs: { a: ChartInput; b: ChartInput };
+  /** Score range when a birth time is unknown (honest uncertainty). */
+  range: ScoreRange | null;
 }
 
 const ASPECT_GLYPH: Record<string, string> = {
@@ -72,7 +78,8 @@ export default function CoupleExperience({
     const chartA = computeChart(inA);
     const chartB = computeChart(inB);
     const syn = computeSynastry(chartA, chartB, inA.name ?? t.compat.personA, inB.name ?? t.compat.personB);
-    return { a: chartA, b: chartB, syn };
+    const range = coupleScoreRange(inA, inB);
+    return { a: chartA, b: chartB, syn, inputs: { a: inA, b: inB }, range };
   };
 
   // Returning visitor: if there's no shared-link result, restore the last
@@ -104,6 +111,17 @@ export default function CoupleExperience({
     } finally {
       setLoading(false);
     }
+  }
+
+  // Let a cold visitor feel the wow-moment before entering two full birth
+  // charts — the biggest funnel leak was gating the reveal behind the effort
+  // it's meant to justify.
+  function loadSample() {
+    setError(null);
+    setA(SAMPLE_A);
+    setB(SAMPLE_B);
+    setResult(compute(SAMPLE_A, SAMPLE_B));
+    setRevealKey((k) => k + 1);
   }
 
   return (
@@ -138,7 +156,7 @@ export default function CoupleExperience({
 
       {result
         ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
-        : <EmptyState />}
+        : <EmptyState onSample={loadSample} />}
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
         <p>{t.compat.footer1}</p>
@@ -148,17 +166,33 @@ export default function CoupleExperience({
   );
 }
 
-function EmptyState() {
+function EmptyState({ onSample }: { onSample: () => void }) {
   const t = useT();
   return (
     <section className="mt-12 mb-2 text-center">
-      <div className="inline-flex flex-col items-center gap-2 text-haze/70">
+      <div className="inline-flex flex-col items-center gap-3 text-haze/70">
         <span className="text-2xl text-gold/55" aria-hidden>✦</span>
         <p className="text-sm">{t.compat.empty}</p>
+        <button onClick={onSample} className="mt-1 text-xs uppercase tracking-[0.18em] text-gold/85 hover:text-gold underline underline-offset-4">
+          {t.reading.sampleCta}
+        </button>
       </div>
     </section>
   );
 }
+
+// A pre-filled sample couple (no real people) so the reveal ritual, gauge,
+// axes, and paywall peek play instantly with zero data entry.
+const SAMPLE_A: BirthFormValues = {
+  name: "Mia",
+  place: { label: "Lisbon, Portugal", name: "Lisbon", country: "Portugal", lat: 38.7223, lon: -9.1393, tz: "Europe/Lisbon" },
+  year: 1994, month: 6, day: 12, hour: 9, minute: 20, timeKnown: true,
+};
+const SAMPLE_B: BirthFormValues = {
+  name: "Leo",
+  place: { label: "Buenos Aires, Argentina", name: "Buenos Aires", country: "Argentina", lat: -34.6037, lon: -58.3816, tz: "America/Argentina/Buenos_Aires" },
+  year: 1991, month: 11, day: 3, hour: 21, minute: 45, timeKnown: true,
+};
 
 function Panel({ label, accent, children }: { label: string; accent: string; children: React.ReactNode }) {
   return (
@@ -174,17 +208,31 @@ function Panel({ label, accent, children }: { label: string; accent: string; chi
 
 // ───────────────────────── result deck ─────────────────────────
 function Result({ result, staged, forms }: { result: CoupleResult; staged: boolean; forms: { a: BirthFormValues; b: BirthFormValues } }) {
-  const { a, b, syn } = result;
+  const { a, b, syn, inputs, range } = result;
   const t = useT();
+  const { locale } = useLocale();
 
   const archReading = archetypeReading(syn);
   const thread = strongestThread(syn);
   const reads = subscoreRead(syn);
 
+  // Premium is confirmed by the SERVER (signed entitlement token), not by a
+  // local flag — and the AI-written reading only exists server-side.
+  const readingReq = useMemo(
+    () => ({ mode: "couple" as const, a: inputs.a, b: inputs.b, locale }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(inputs), locale],
+  );
+  const { gate, prose, proseLoading } = useReading(readingReq);
+  const unlocked = gate === "open";
+
   const h = t.compat.hints;
   const cards: { key: string; hint: string; node: React.ReactNode }[] = [
-    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} /> },
+    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} range={range} /> },
     { key: "type", hint: h.type, node: <ArchetypeCard reading={archReading} /> },
+    ...(unlocked && (prose || proseLoading)
+      ? [{ key: "prose", hint: t.reading.proseTitle, node: <ProseCard prose={prose as CoupleProse | null} loading={proseLoading} /> }]
+      : []),
     ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} /> }] : []),
     { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
     { key: "tend", hint: h.tend, node: <TendCard syn={syn} /> },
@@ -195,9 +243,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   ];
 
   // Free tier: the score and the couple-type cards. Everything past that sits
-  // behind a single $2 unlock. The gate reads entitlement reactively, so a
-  // confirmed payment reveals the rest without a reload.
-  const unlocked = useUnlocked();
+  // behind a single $2 unlock, confirmed server-side.
   const FREE = 2;
   const total = cards.length;
   const gateAt = unlocked ? total : Math.min(FREE, total);
@@ -243,7 +289,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   return (
     <section className="mt-10 space-y-5">
       {staged && (
-        <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze">
+        <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze" aria-live="polite">
           <span><span key={done} className="count-tick">✦ {fill(t.compat.revealedOfTotal, { n: done, total })}</span> {t.compat.revealedWord}</span>
           {revealed < gateAt && (
             <button onClick={revealAll} className="text-gold/80 hover:text-gold underline underline-offset-4">
@@ -262,7 +308,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
       </div>
 
       {locked && atGate && (
-        <PaywallGate blurb={t.pay.compat} next={next} peek={cards[gateAt]?.node} />
+        <PaywallGate blurb={t.pay.compat} next={next} />
       )}
 
       {unlocked && revealed >= total && syn.warnings.length > 0 && (
@@ -292,8 +338,11 @@ const FacedownCard = forwardRef<HTMLButtonElement, { hint: string; onReveal: () 
 );
 
 // ───────────────────────── individual cards ─────────────────────────
-function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues } }) {
+function ScoreCard({ syn, forms, range }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues }; range: ScoreRange | null }) {
   const { palette: pal } = useTheme();
+  const t = useT();
+  // Only surface the range when the unknown birth time actually moves the score.
+  const showRange = range && range.spread >= 3;
   return (
     <div className="glass p-6 sm:p-8 text-center">
       <div className="stagger flex flex-col items-center">
@@ -303,10 +352,69 @@ function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormV
           <span style={{ color: pal.personB }}>{syn.names.b}</span>
         </div>
         <div className="mt-3"><ScoreGauge score={syn.score} /></div>
+        {showRange && (
+          <p className="text-[11px] text-gold/80 mt-1.5 tabular-nums">
+            {fill(t.reading.scoreRange, { min: range!.min, max: range!.max })}
+          </p>
+        )}
         <h2 className="font-display text-3xl text-goldbright mt-3">{syn.band.label}</h2>
         <p className="text-cream/85 max-w-md mx-auto mt-2 text-[15px] leading-relaxed">{scoreMeaning(syn)}</p>
+        <TwoAxes ease={syn.axes.ease} intensity={syn.axes.intensity} />
       </div>
       <ShareRow syn={syn} forms={forms} />
+    </div>
+  );
+}
+
+// The honest two-axis readout: which way the bond leans (ease) vs how much is
+// going on (intensity). Kills the "a clashing couple scores higher" confusion.
+function TwoAxes({ ease, intensity }: { ease: number; intensity: number }) {
+  const { palette: pal } = useTheme();
+  const t = useT();
+  const Axis = ({ label, value, color }: { label: string; value: number; color: string }) => (
+    <div className="text-left flex-1">
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="text-[10px] uppercase tracking-wider text-haze/90">{label}</span>
+        <span className="text-sm tabular-nums" style={{ color }}>{value}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-cream/10 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color, transition: "width 900ms cubic-bezier(0.22,1,0.36,1)" }} />
+      </div>
+    </div>
+  );
+  return (
+    <div className="w-full max-w-sm mx-auto mt-5">
+      <div className="flex gap-4">
+        <Axis label={t.reading.ease} value={ease} color={pal.aspect.harmonious} />
+        <Axis label={t.reading.intensity} value={intensity} color={pal.personB} />
+      </div>
+      <p className="text-[11px] text-haze/70 leading-relaxed mt-2.5">{t.reading.axesExplain}</p>
+    </div>
+  );
+}
+
+// The AI-written, chart-grounded reading (the premium centerpiece). Falls back
+// silently: if prose is null the card simply isn't rendered by the deck.
+function ProseCard({ prose, loading }: { prose: CoupleProse | null; loading: boolean }) {
+  const t = useT();
+  return (
+    <div className="glass p-6 sm:p-9 stagger">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">{t.reading.proseTitle}</div>
+      {loading && !prose ? (
+        <div className="mt-6 flex flex-col items-center gap-3 py-8 text-haze/80">
+          <span className="text-2xl text-gold/60 animate-pulse" aria-hidden>✦</span>
+          <p className="text-sm" aria-live="polite">{t.reading.proseWriting}</p>
+        </div>
+      ) : (
+        <div className="mt-5 space-y-5 max-w-2xl mx-auto">
+          {prose?.sections.map((s) => (
+            <div key={s.key}>
+              <h4 className="font-display text-lg text-goldbright">{s.title}</h4>
+              <p className="text-[15px] text-cream/90 leading-relaxed mt-1.5 whitespace-pre-line">{s.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -640,14 +748,38 @@ function ShineCard({ reads }: { reads: SubscoreRead }) {
 function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues } }) {
   const t = useT();
   const [copied, setCopied] = useState<string | null>(null);
+  // Prefer the PII-safe encrypted link (?s=). It's minted server-side, so we
+  // fetch it once; until it arrives (or if it fails), fall back to the legacy
+  // cleartext ?r= link so sharing never breaks.
+  const [shareLink, setShareLink] = useState<string>("");
   const card = buildShareCard(syn);
   const caps = buildCaptions(syn);
 
-  const link = () => {
+  const legacyLink = () => {
     if (typeof window === "undefined") return "https://astro-love.app/";
     const base = window.location.origin;
     try { return `${base}/?r=${encodeReading(forms.a, forms.b)}`; } catch { return `${base}/`; }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = encodeReading(forms.a, forms.b);
+        const res = await fetch("/api/share/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ r }),
+        });
+        const d = await res.json();
+        if (!cancelled && d?.s) setShareLink(`${window.location.origin}/?s=${encodeURIComponent(d.s)}`);
+      } catch { /* keep the legacy fallback */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(forms)]);
+
+  const link = () => shareLink || legacyLink();
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
   const text = caps.story;
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { grantUnlock } from "@/lib/entitlement";
+import { grantEntitlement } from "@/lib/entitlement";
 import { NEXT_KEY } from "@/lib/checkout";
 
 type State = "checking" | "paid" | "cancel" | "unverified" | "error";
@@ -29,7 +29,7 @@ export default function PayReturn() {
         .then((d) => {
           if (myRun !== runRef.current) return; // superseded by a newer run
           if (d.verified) {
-            grantUnlock();
+            grantEntitlement({ ref: r, token: String(d.token ?? "") });
             setTest(!!d.test);
             setState("paid");
             try { localStorage.removeItem(NEXT_KEY); } catch { /* ignore */ }
@@ -87,11 +87,33 @@ export default function PayReturn() {
 
   // A portable, savable link to the unlocked reading. It carries ?paid=<ref> so
   // opening it on any device re-verifies the payment and unlocks there too.
-  const keepLink = (() => {
-    if (state !== "paid" || !ref || typeof window === "undefined") return "";
-    const base = `${window.location.origin}${next}`;
-    return `${base}${next.includes("?") ? "&" : "?"}paid=${encodeURIComponent(ref)}`;
-  })();
+  // The reading itself travels as the ENCRYPTED ?s= token (minted server-side),
+  // never the cleartext ?r= — this link gets emailed and shared, so it must not
+  // leak both people's birth data. Falls back to the plain path if minting fails.
+  const [keepLink, setKeepLink] = useState("");
+  useEffect(() => {
+    if (state !== "paid" || !ref || typeof window === "undefined") { setKeepLink(""); return; }
+    const origin = window.location.origin;
+    const withPaid = (path: string) => `${origin}${path}${path.includes("?") ? "&" : "?"}paid=${encodeURIComponent(ref)}`;
+    // Extract a legacy ?r= reading token from `next` and re-mint it as ?s=.
+    const m = next.match(/[?&]r=([^&]+)/);
+    if (!m) { setKeepLink(withPaid(next)); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/share/", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ r: decodeURIComponent(m[1]) }),
+        });
+        const d = await res.json();
+        if (cancelled) return;
+        setKeepLink(d?.s ? withPaid(`/?s=${encodeURIComponent(d.s)}`) : withPaid(next));
+      } catch {
+        if (!cancelled) setKeepLink(withPaid(next));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [state, ref, next]);
 
   return (
     <main className="relative mx-auto max-w-lg px-4 py-20 text-center">
