@@ -74,6 +74,8 @@ interface FactContract {
       bModality: string;
       mutualReception: boolean;
       oneWayReception: boolean;
+      aDignity: string | null;
+      bDignity: string | null;
     };
   }>;
   overlays: Array<{ id: string; sentence: string }>;
@@ -111,6 +113,8 @@ function buildFactContract(syn: SynastryResult, locale: string): FactContract {
           bModality: f.bModality,
           mutualReception: f.mutualReception,
           oneWayReception: !f.mutualReception && (f.aInBRuled || f.bInARuled),
+          aDignity: f.aDignity,
+          bDignity: f.bDignity,
         },
       };
     }),

@@ -17,7 +17,7 @@
 
 import { computeChart } from "../lib/astro/chart";
 import { computeSynastry, type SynAspect } from "../lib/astro/synastry";
-import { contactFacts } from "../lib/astro/enrich";
+import { contactFacts, dignityOf } from "../lib/astro/enrich";
 import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
 import { coupleScoreRange } from "../lib/astro/uncertainty";
@@ -200,6 +200,16 @@ ok(vf.aModality === "cardinal" && vf.bModality === "fixed", "modality read corre
 ok(vf.orbTier === "exact", "1° orb tiers as near-exact");
 const noRecep = contactFacts({ ...vsContact, aBody: "Sun", bBody: "Moon", aLon: 15, bLon: 135 });
 ok(noRecep.mutualReception === false && noRecep.sharedElement === "fire", "Sun(Aries)△Moon(Leo): fire, no reception");
+
+// Essential dignities (classical tables). signIndex: 0 Aries … 11 Pisces.
+ok(dignityOf("Sun", 4) === "domicile", "Sun in Leo = domicile");
+ok(dignityOf("Sun", 0) === "exaltation", "Sun in Aries = exaltation");
+ok(dignityOf("Sun", 6) === "fall", "Sun in Libra = fall (opposite exaltation)");
+ok(dignityOf("Sun", 10) === "detriment", "Sun in Aquarius = detriment (opposite Leo)");
+ok(dignityOf("Venus", 11) === "exaltation", "Venus in Pisces = exaltation");
+ok(dignityOf("Saturn", 3) === "detriment", "Saturn in Cancer = detriment (opposite Capricorn)");
+ok(dignityOf("Mars", 3) === "fall", "Mars in Cancer = fall (opposite Capricorn exaltation)");
+ok(dignityOf("Mercury", 3) === null, "Mercury in Cancer = peregrine (no dignity)");
 
 // Pair-aware conjunction valence.
 ok(pairValence("conjunction", "Mars", "Pluto") === "tension", "Mars☌Pluto reads as tension");

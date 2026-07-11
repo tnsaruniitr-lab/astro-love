@@ -27,6 +27,22 @@ const DOMICILE: Record<string, number[]> = {
 };
 const HAS_DOMICILE = (b: string) => b in DOMICILE;
 
+// Classical essential dignities beyond domicile. Exaltation = the sign where a
+// planet works at its brilliant best; fall = its opposite; detriment = the
+// sign(s) opposite domicile, where the planet works against its own grain.
+const EXALTATION: Record<string, number> = {
+  Sun: 0, Moon: 1, Mercury: 5, Venus: 11, Mars: 9, Jupiter: 3, Saturn: 6,
+};
+export type Dignity = "domicile" | "exaltation" | "detriment" | "fall";
+/** Strongest single dignity label for a planet in a sign, or null. */
+export function dignityOf(body: string, signIndex: number): Dignity | null {
+  if (DOMICILE[body]?.includes(signIndex)) return "domicile";
+  if (EXALTATION[body] === signIndex) return "exaltation";
+  if (EXALTATION[body] !== undefined && (EXALTATION[body] + 6) % 12 === signIndex) return "fall";
+  if (DOMICILE[body]?.some((d) => (d + 6) % 12 === signIndex)) return "detriment";
+  return null;
+}
+
 const modalityOf = (signIndex: number): Modality => MODALITY[signIndex % 3];
 const elementOf = (signIndex: number): Element => SIGNS[signIndex].element;
 
@@ -59,6 +75,9 @@ export interface ContactFacts {
   bInARuled: boolean;
   /** Both host each other by domicile — the strongest cooperative dignity. */
   mutualReception: boolean;
+  /** Essential dignity of each planet in its own sign (null = peregrine). */
+  aDignity: Dignity | null;
+  bDignity: Dignity | null;
 }
 
 /** Pure facts for one inter-chart contact. */
@@ -87,6 +106,8 @@ export function contactFacts(a: SynAspect): ContactFacts {
     aInBRuled,
     bInARuled,
     mutualReception: aInBRuled && bInARuled,
+    aDignity: dignityOf(a.aBody, aSi),
+    bDignity: dignityOf(a.bBody, bSi),
   };
 }
 
@@ -190,6 +211,22 @@ export function enrichSections(a: SynAspect, names: { a: string; b: string }): C
     });
   }
 
+  // 2b. Essential dignity of each planet in its own sign — appended to the
+  // dignity section (or standing alone) when a planet is notably strong or
+  // strained. Classical tables, pure lookup.
+  const dignityLines = [
+    dignityLine(names.a, enA, f.aDignity, f.aSign),
+    dignityLine(names.b, enB, f.bDignity, f.bSign),
+  ].filter(Boolean) as string[];
+  if (dignityLines.length > 0) {
+    const last = sections[sections.length - 1];
+    if (last.kind === "dignity") {
+      last.body += ` ${dignityLines.join(" ")}`;
+    } else {
+      sections.push({ kind: "dignity", kicker: "How strong each planet stands", body: dignityLines.join(" ") });
+    }
+  }
+
   // 3. Meaning
   const dyn = PAIR_DYNAMIC[pairKey(a.aBody, a.bBody)];
   let meaning = dyn
@@ -218,6 +255,17 @@ function fmt(lon: number): string {
 }
 const elemShort = (e: Element): string => e;
 const roleOf = (b: string) => ROLE[b] ?? enName(b).toLowerCase();
+
+const DIGNITY_PHRASE: Record<Dignity, string> = {
+  domicile: "is in its own sign there, at home and at full strength",
+  exaltation: "is exalted there, working at its brilliant best",
+  detriment: "is in detriment there, working against its own grain, which asks for patience",
+  fall: "is in its fall there, quieter than usual, which asks for gentleness",
+};
+function dignityLine(name: string, en: string, d: Dignity | null, sign: string): string | null {
+  if (!d) return null;
+  return `${name}'s ${en} ${DIGNITY_PHRASE[d]} in ${sign}.`;
+}
 
 const MODALITY_VERB: Record<Modality, string> = {
   cardinal: "makes the first move to build", fixed: "holds it steady and sustains it", mutable: "keeps it flexible and adapting",

@@ -3,7 +3,8 @@ import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry } from "@/lib/astro/synastry";
 import { loveQuestions } from "@/lib/astro/natalReading";
 import { verifyEntitlement } from "@/lib/server/entitlement";
-import { proseAvailable, writeCoupleProse, writeNatalProse } from "@/lib/server/writer";
+import { proseCacheGet, proseCacheKey, proseCacheSet } from "@/lib/server/prosecache";
+import { proseAvailable, writeCoupleProse, writeNatalProse, type CoupleProse, type NatalProse } from "@/lib/server/writer";
 import type { ChartInput } from "@/lib/astro/types";
 
 // The premium gate, server-side. The client may compute the deterministic
@@ -85,7 +86,17 @@ export async function POST(req: Request) {
       // Serve the deterministic love answers from the SERVER (not the browser)
       // so the premium payload only exists after entitlement is confirmed.
       const natalAnswers = loveQuestions(chart);
-      const prose = wantProse ? await writeNatalProse(chart, locale) : null;
+      let prose: NatalProse | null = null;
+      if (wantProse) {
+        // Cost guard: a reading is deterministic per (inputs, locale), so one
+        // model call serves every later view of the same chart.
+        const key = proseCacheKey(["natal", body.a, locale]);
+        prose = proseCacheGet<NatalProse>(key);
+        if (!prose) {
+          prose = await writeNatalProse(chart, locale);
+          proseCacheSet(key, prose);
+        }
+      }
       return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), natalAnswers, prose });
     }
     if (!wantProse) {
@@ -99,7 +110,12 @@ export async function POST(req: Request) {
       (body.a as ChartInput).name || "Person A",
       (body.b as ChartInput).name || "Person B",
     );
-    const prose = await writeCoupleProse(syn, locale);
+    const key = proseCacheKey(["couple", body.a, body.b, locale]);
+    let prose = proseCacheGet<CoupleProse>(key);
+    if (!prose) {
+      prose = await writeCoupleProse(syn, locale);
+      proseCacheSet(key, prose);
+    }
     return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), prose });
   } catch (err) {
     console.error("[reading] compute/prose error:", err instanceof Error ? err.message : err);
