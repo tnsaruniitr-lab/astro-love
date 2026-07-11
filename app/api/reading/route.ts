@@ -4,6 +4,8 @@ import { computeSynastry } from "@/lib/astro/synastry";
 import { loveQuestions } from "@/lib/astro/natalReading";
 import { verifyEntitlement } from "@/lib/server/entitlement";
 import { proseCacheGet, proseCacheKey, proseCacheSet } from "@/lib/server/prosecache";
+import { loadProse, recordReading } from "@/lib/server/db";
+import { wherePlaces } from "@/lib/astro/astrocartography";
 import { proseAvailable, writeCoupleProse, writeNatalProse, type CoupleProse, type NatalProse } from "@/lib/server/writer";
 import type { ChartInput } from "@/lib/astro/types";
 
@@ -80,24 +82,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ entitled: true, proseAvailable: proseAvailable() });
   }
 
+  const purchaseRef = claims?.ref ?? null;
+
   try {
     if (mode === "natal") {
       const chart = computeChart(body.a as ChartInput);
       // Serve the deterministic love answers from the SERVER (not the browser)
       // so the premium payload only exists after entitlement is confirmed.
       const natalAnswers = loveQuestions(chart);
+      const places = wherePlaces(body.a as ChartInput);
       let prose: NatalProse | null = null;
       if (wantProse) {
-        // Cost guard: a reading is deterministic per (inputs, locale), so one
-        // model call serves every later view of the same chart.
+        // Cost guard: memory cache → durable DB cache → generate once.
         const key = proseCacheKey(["natal", body.a, locale]);
-        prose = proseCacheGet<NatalProse>(key);
+        prose = proseCacheGet<NatalProse>(key) ?? (await loadProse<NatalProse>(key));
         if (!prose) {
           prose = await writeNatalProse(chart, locale);
-          proseCacheSet(key, prose);
         }
+        proseCacheSet(key, prose);
+        // Outcome record (fire-and-forget): the reading + prose, durable.
+        void recordReading({
+          kind: "natal",
+          inputHash: key,
+          locale,
+          inputs: body.a,
+          summary: { sun: chart.planets[0]?.sign, moon: chart.planets[1]?.sign, asc: chart.asc?.sign ?? null },
+          prose,
+          proseModel: prose?.model ?? null,
+          purchaseRef,
+        });
       }
-      return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), natalAnswers, prose });
+      return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), natalAnswers, places, prose });
     }
     if (!wantProse) {
       return NextResponse.json({ entitled: true, proseAvailable: proseAvailable() });
@@ -111,11 +126,21 @@ export async function POST(req: Request) {
       (body.b as ChartInput).name || "Person B",
     );
     const key = proseCacheKey(["couple", body.a, body.b, locale]);
-    let prose = proseCacheGet<CoupleProse>(key);
+    let prose = proseCacheGet<CoupleProse>(key) ?? (await loadProse<CoupleProse>(key));
     if (!prose) {
       prose = await writeCoupleProse(syn, locale);
-      proseCacheSet(key, prose);
     }
+    proseCacheSet(key, prose);
+    void recordReading({
+      kind: "couple",
+      inputHash: key,
+      locale,
+      inputs: { a: body.a, b: body.b },
+      summary: { score: syn.score, band: syn.band.key, axes: syn.axes, names: syn.names },
+      prose,
+      proseModel: prose?.model ?? null,
+      purchaseRef,
+    });
     return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), prose });
   } catch (err) {
     console.error("[reading] compute/prose error:", err instanceof Error ? err.message : err);

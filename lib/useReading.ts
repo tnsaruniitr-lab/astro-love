@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { readEntitlement, refreshEntitlementToken, useEntitlement } from "./entitlement";
 import type { ChartInput } from "./astro/types";
 import type { LoveAnswer } from "./astro/natalReading";
+import type { WherePlaces } from "./astro/astrocartography";
 import type { CoupleProse, NatalProse } from "./server/writer";
 
 export type GateState = "locked" | "checking" | "open";
@@ -29,6 +30,7 @@ interface ReadingResponse {
   proseAvailable: boolean;
   prose?: CoupleProse | NatalProse | null;
   natalAnswers?: LoveAnswer[] | null;
+  places?: WherePlaces | null;
 }
 
 const PROSE_TIMEOUT_MS = 118_000; // just under the route's maxDuration
@@ -73,6 +75,7 @@ export interface ReadingResult {
   prose: CoupleProse | NatalProse | null;
   proseLoading: boolean;
   natalAnswers: LoveAnswer[] | null;
+  places: WherePlaces | null;
 }
 
 /** Server-confirmed gate + prose for the current reading. `req` must be
@@ -86,6 +89,7 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
   const [prose, setProse] = useState<CoupleProse | NatalProse | null>(null);
   const [proseLoading, setProseLoading] = useState(false);
   const [natalAnswers, setNatalAnswers] = useState<LoveAnswer[] | null>(null);
+  const [places, setPlaces] = useState<WherePlaces | null>(null);
   const runRef = useRef(0);
 
   const reqKey = req ? JSON.stringify([req.mode, req.a ?? null, req.b ?? null, req.locale]) : null;
@@ -94,6 +98,7 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
     const myRun = ++runRef.current;
     setProse(null);
     setNatalAnswers(null);
+    setPlaces(null);
     if (!req || !ent) {
       setGate("locked");
       setProseLoading(false);
@@ -115,6 +120,7 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
       }
       setGate("open");
       if (d.natalAnswers) setNatalAnswers(d.natalAnswers);
+      if (d.places) setPlaces(d.places);
 
       // 2. Fetch the AI reading in the background (may take a while; the
       //    deterministic cards are already open). The chart-less "love" mode
@@ -133,5 +139,5 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reqKey, ent?.token]);
 
-  return { gate, prose, proseLoading, natalAnswers };
+  return { gate, prose, proseLoading, natalAnswers, places };
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { mintEntitlement } from "@/lib/server/entitlement";
+import { recordPurchase } from "@/lib/server/db";
 
 // Server-side verification of a payment by its order ref. The return query
 // string is only a trigger; entitlement is decided here — FAIL-CLOSED.
@@ -68,6 +69,21 @@ export async function GET(req: Request) {
     const matchesExpected = amountOk && currencyOk && productOk;
 
     const verified = found && paid && matchesExpected;
+
+    // Purchase ledger: persist who paid (ref + the processor ids the upstream
+    // echoes from the Apple Pay/Razorpay flow). Fire-and-forget — the ledger
+    // must never block or fail a verification.
+    if (verified) {
+      void recordPurchase({
+        ref,
+        product: expectProduct,
+        amount: typeof data.amount === "number" ? data.amount : Number(data.amount) || null,
+        currency: data.currency != null ? String(data.currency) : null,
+        paymentId: data.payment_id != null ? String(data.payment_id) : null,
+        orderId: data.order_id != null ? String(data.order_id) : null,
+      });
+    }
+
     // Keep polling only while the payment hasn't landed yet; a paid-but-
     // mismatched result is a hard reject, not pending.
     const pending = !verified && !paid;

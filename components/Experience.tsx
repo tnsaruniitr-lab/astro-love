@@ -14,6 +14,7 @@ import { useReading } from "@/lib/useReading";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import type { ChartFacts, ChartInput } from "@/lib/astro/types";
+import type { WherePlaces } from "@/lib/astro/astrocartography";
 
 function chartFromForm(v: BirthFormValues): ChartFacts | null {
   const p = v.place;
@@ -62,7 +63,7 @@ export default function Experience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chartInput ? JSON.stringify(chartInput) : null, locale],
   );
-  const { gate, natalAnswers } = useReading(readingReq);
+  const { gate, natalAnswers, places } = useReading(readingReq);
   const unlocked = gate === "open";
 
   // Restore the last chart the visitor built (e.g. after returning from
@@ -117,6 +118,7 @@ export default function Experience({
               {unlocked
                 ? (natalAnswers ? <LoveQuestions items={natalAnswers} /> : <AnswersLoading />)
                 : <PaywallGate blurb={t.pay.natal} next="/natal" />}
+              {unlocked && places && <WherePlacesCard places={places} />}
             </>
           ) : (
             <NatalEmpty />
@@ -137,6 +139,61 @@ function NatalEmpty() {
         <span className="text-2xl text-gold/55" aria-hidden>✦</span>
         <p className="text-sm">{t.natal.empty}</p>
       </div>
+    </div>
+  );
+}
+
+// "Where in the world you should live" — deterministic astrocartography: your
+// planetary lines scored against ~180 cities, grouped by life theme.
+function WherePlacesCard({ places }: { places: WherePlaces }) {
+  const THEME_ICON: Record<string, string> = { love: "♀", growth: "♃", vitality: "☉", belonging: "☾", career: "✦" };
+  if (!places.available) {
+    return (
+      <div className="glass p-6 sm:p-7">
+        <h3 className="font-display text-2xl text-cream mb-1">Where in the world</h3>
+        <p className="text-sm text-haze/90 leading-relaxed">{places.note}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="glass p-6 sm:p-7">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">Where in the world</div>
+      <h3 className="font-display text-2xl text-cream text-center mt-1 mb-1">Your places on Earth</h3>
+      <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
+        Each planet runs an invisible line across the globe where it grows strong. Live on it and that part of life amplifies. These come from your exact birth chart, the same astronomy behind the wheel.
+      </p>
+      <div className="space-y-4">
+        {places.themes.map((th) => (
+          <div key={th.key} className="rounded-2xl border border-cream/10 bg-cream/[0.03] p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-gold text-lg" style={{ fontFamily: '"Segoe UI Symbol","Apple Symbols",serif' }}>{THEME_ICON[th.key] ?? "✦"}</span>
+              <h4 className="font-display text-lg text-goldbright">{th.label}</h4>
+            </div>
+            <p className="text-[12px] text-haze/80 mt-0.5 mb-2.5 leading-snug">{th.blurb}</p>
+            <ul className="space-y-1.5">
+              {th.picks.map((p) => (
+                <li key={p.city} className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="text-cream/90">{p.city}<span className="text-haze/60">, {p.country}</span></span>
+                  <span className="text-[10px] uppercase tracking-wider text-gold/80 tabular-nums shrink-0">{p.planet} {p.angleAbbr} · {p.orbDeg}°</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      {places.caution.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-rose/20 bg-rose/[0.05] p-4">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-rose/90 flex items-center gap-1.5"><span aria-hidden>⚠</span>Handle with care</div>
+          <ul className="mt-2 space-y-1.5">
+            {places.caution.map((c) => (
+              <li key={c.city} className="text-[13px] text-cream/85 leading-snug">
+                <span className="text-cream">{c.city}</span> <span className="text-[10px] uppercase tracking-wider text-haze/70">({c.planet} {c.angleAbbr}, {c.orbDeg}°)</span> — {c.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <p className="text-[10px] text-haze/50 text-center mt-4 leading-relaxed">Relocation astrology suggests emphasis, not destiny. Visiting counts too.</p>
     </div>
   );
 }

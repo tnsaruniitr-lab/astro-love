@@ -76,3 +76,16 @@ export function isRetrograde(body: PlanetName, date: Date): boolean {
 export function gastDeg(date: Date): number {
   return norm360(Astronomy.SiderealTime(date) * 15); // SiderealTime returns HOURS
 }
+
+/** Geocentric equatorial-of-date coordinates (right ascension + declination),
+ *  in DEGREES. RA is the same EQD frame used for the ecliptic longitudes, so it
+ *  pairs correctly with gastDeg() for astrocartography (planet-on-angle lines). */
+export function equatorialOfDate(body: PlanetName, date: Date): { ra: number; dec: number } {
+  const gv = Astronomy.GeoVector(BODY[body], date, true);
+  const eqd = Astronomy.RotateVector(Astronomy.Rotation_EQJ_EQD(date), gv);
+  const r = Math.hypot(eqd.x, eqd.y, eqd.z);
+  return {
+    ra: norm360(Math.atan2(eqd.y, eqd.x) * DEG),
+    dec: Math.asin(eqd.z / r) * DEG,
+  };
+}

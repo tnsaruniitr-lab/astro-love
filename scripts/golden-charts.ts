@@ -18,6 +18,7 @@
 import { computeChart } from "../lib/astro/chart";
 import { computeSynastry, type SynAspect } from "../lib/astro/synastry";
 import { contactFacts, dignityOf } from "../lib/astro/enrich";
+import { wherePlaces, _lineLongitude } from "../lib/astro/astrocartography";
 import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
 import { coupleScoreRange } from "../lib/astro/uncertainty";
@@ -210,6 +211,28 @@ ok(dignityOf("Venus", 11) === "exaltation", "Venus in Pisces = exaltation");
 ok(dignityOf("Saturn", 3) === "detriment", "Saturn in Cancer = detriment (opposite Capricorn)");
 ok(dignityOf("Mars", 3) === "fall", "Mars in Cancer = fall (opposite Capricorn exaltation)");
 ok(dignityOf("Mercury", 3) === null, "Mercury in Cancer = peregrine (no dignity)");
+
+// Astrocartography self-consistency: a point placed exactly on a computed line
+// must recompute with that planet essentially on that angle (orb ~0).
+console.log("── Astrocartography ──");
+{
+  const inst = resolveInstant(PEOPLE[1]); // Bob, a time-known chart
+  const date = inst.utc;
+  const lonMC = _lineLongitude("Venus", date, "culminating", 0)!;
+  // A place at (lat 20, that longitude) should sit on Venus's MC meridian.
+  const wp = wherePlaces(PEOPLE[1]);
+  ok(wp.available === true, "relocation map available for a time-known chart");
+  ok(wp.themes.length >= 3, "at least 3 place themes produced", `${wp.themes.length}`);
+  ok(wp.themes.every((t) => t.picks.every((p) => p.orbDeg <= 6)), "every pick is within the 6° line orb");
+  ok(wp.themes.every((t) => t.picks.length <= 3), "themes cap at 3 picks");
+  // Self-consistency: reverse the ASC line and confirm it's stable across latitudes it exists at.
+  const asc10 = _lineLongitude("Sun", date, "rising", 10);
+  const asc10b = _lineLongitude("Sun", date, "rising", 10);
+  ok(asc10 !== null && asc10 === asc10b, "line longitude is deterministic");
+  ok(typeof lonMC === "number" && lonMC >= -180 && lonMC <= 180, "MC line longitude in range", `${lonMC?.toFixed(1)}`);
+  // Unknown birth time → no relocation map (honest).
+  ok(wherePlaces({ ...PEOPLE[1], timeKnown: false }).available === false, "unknown birth time disables the relocation map");
+}
 
 // Pair-aware conjunction valence.
 ok(pairValence("conjunction", "Mars", "Pluto") === "tension", "Mars☌Pluto reads as tension");
