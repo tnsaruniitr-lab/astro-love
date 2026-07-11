@@ -1,5 +1,11 @@
 # Astro-Love
 
+> **Continuing this project (agent or human)? Start with [`docs/HANDOFF.md`](docs/HANDOFF.md)** —
+> current architecture, hard rules, dev workflow, the remaining roadmap with
+> acceptance criteria, and the gotchas that have already bitten. `main` is the
+> production deploy branch (auto-deploys on push); the golden suite
+> (`npm run test:golden`) must pass before any push.
+
 A Russian-native, **synastry-first** Web PWA that answers love questions from real astrological **math** (computed planetary positions + a transparent, weighted aspect score) with warm, grounded AI readings in **Russian, Ukrainian, and English**.
 
 The differentiator: not vague sun-signs and not a black-box score — every compatibility number traces back to named aspects ("Venus trine Mars, +6.8 pts"), and the AI layer interprets *only* the pre-computed chart facts (it writes the words, never the numbers).
