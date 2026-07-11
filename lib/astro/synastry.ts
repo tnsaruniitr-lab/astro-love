@@ -1,26 +1,37 @@
 // Synastry: the explainable, weighted compatibility score (SPEC.md §6.5).
 //
-// Deterministic. Every point traces to a named inter-chart aspect, so the final
-// 0–100 number is literally the sum of human-readable sentences. All weights,
+// Deterministic. Every point traces to a named inter-chart aspect, so the
+// numbers are literally the sum of human-readable sentences. All weights,
 // coefficients and constants live in CONFIG so the rubric is auditable/tunable.
+//
+// TWO AXES, one headline. "Compatibility" conflates two different truths:
+//  - INTENSITY: how much is going on between the charts (contact richness).
+//    Additive — every real contact, easy or hard, adds connection.
+//  - EASE: which way the contacts lean. Flowing contacts push above 50,
+//    tension contacts push below; a tiny sample stays near neutral.
+// The headline score blends them (ease-weighted), so an all-conflict pair can
+// no longer outscore a gentle one purely by having MORE conflict — the old
+// purely-additive failure mode.
 
-import { matchAspect, separation } from "./aspects";
+import { matchAspect, pairValence, separation } from "./aspects";
 import { wholeSignHouse } from "./angles";
 import { bodyMeta, SIGNS } from "./zodiac";
-import type { ChartFacts } from "./types";
+import type { ChartFacts, MoonRange } from "./types";
 
 // ───────────────────────── config (auditable) ─────────────────────────
 const CONFIG = {
-  K_OVERALL: 45, // saturating-curve constant for the 0–100 score
+  K_OVERALL: 45, // saturating-curve constant for the intensity axis
   K_SUB: 14, // per-bucket constant for sub-scores
   OVERLAY_CAP: 15, // max raw points house overlays may contribute
+  EASE_DAMP: 25, // volume (raw pts) at which the ease axis trusts the balance
+  BLEND_EASE: 0.55, // headline = BLEND_EASE·ease + (1-BLEND_EASE)·intensity
   ASPECT_COEFF: {
     trine: 1.0,
     sextile: 0.7,
     opposition: 0.6,
     square: 0.5,
     quincunx: 0.3,
-    conjunction: 1.0, // adjusted to 0.6 when Saturn binds a personal point
+    conjunction: 1.0, // 0.6 when the pair-aware valence marks it as binding
   } as Record<string, number>,
   OVERLAY_BONUS: { 7: 3, 5: 3, 8: 2.5, 1: 2.5, 4: 2 } as Record<number, number>,
 };
@@ -68,6 +79,8 @@ function weightFor(a: string, b: string): number {
 
 // ───────────────────────── types ─────────────────────────
 export interface SynAspect {
+  id: string;    // stable fact id ("sa1"…), assigned after sorting — the AI
+                 // writer must cite these, so every claim traces to a fact
   aBody: string; // person A's point key
   bBody: string; // person B's point key
   aLon: number;
@@ -76,6 +89,8 @@ export interface SynAspect {
   orb: number;
   points: number;
   valence: "harmonious" | "tension" | "blending";
+  /** True when an unknown birth time could change or remove this contact. */
+  timeSensitive?: boolean;
   headline: string; // plain-language claim (leads the row)
   why: string;      // the grounded reasoning (small, beneath)
   proof: string;    // the raw chart evidence (exact positions + aspect + orb)
@@ -83,6 +98,7 @@ export interface SynAspect {
 }
 
 export interface SynOverlay {
+  id: string; // stable fact id ("ov1"…)
   from: "A" | "B";
   body: string;
   house: number;
@@ -93,6 +109,13 @@ export interface SynOverlay {
 export interface SynastryResult {
   score: number;
   band: { key: string; label: string; blurb: string };
+  /** The two honest axes behind the headline number. */
+  axes: {
+    ease: number;      // 0–100, 50 = neutral; which way the contacts lean
+    intensity: number; // 0–100; how much is going on, easy or hard
+  };
+  flowPoints: number;    // weighted points from flowing/blending contacts
+  tensionPoints: number; // weighted points from tension contacts
   subscores: {
     emotional: number;
     attraction: number;
@@ -256,12 +279,24 @@ function pairWhy(a: string, b: string, aspect: string, aLon: number, bLon: numbe
 // ───────────────────────── scoring ─────────────────────────
 const sat = (raw: number, k: number) => Math.round(100 * (1 - Math.exp(-raw / k)));
 
+// Bands re-anchored for the blended (ease-weighted) headline score — see the
+// calibration fixtures in scripts/golden-charts.ts before touching these.
 function bandFor(score: number): SynastryResult["band"] {
   if (score >= 82) return { key: "rare", label: "Rare resonance", blurb: "An unusually rich web of connection, the kind that feels almost written in the stars." };
   if (score >= 68) return { key: "strong", label: "Strong connection", blurb: "Real chemistry with solid foundations, plenty to build on together." };
   if (score >= 52) return { key: "potential", label: "Real potential", blurb: "A genuine spark with room to grow, where the differences can become depth." };
   if (score >= 36) return { key: "work", label: "Worth the work", blurb: "Attraction is here, and it asks for patience and understanding to flourish." };
   return { key: "challenging", label: "Challenging chemistry", blurb: "Very different rhythms, intense at times, and it takes real effort to harmonise." };
+}
+
+/** Does this Moon still make the same aspect at both ends of the birth day?
+ *  (Only asked when the Moon's chart has an unknown birth time.) */
+function moonAspectStable(range: MoonRange, otherLon: number, otherKey: string, matched: string): boolean {
+  for (const lon of [range.lonStart, range.lonEnd]) {
+    const m = matchAspect(separation(lon, otherLon), "Moon", otherKey);
+    if (!m || m.def.name !== matched) return false;
+  }
+  return true;
 }
 
 export function computeSynastry(
@@ -281,27 +316,38 @@ export function computeSynastry(
       if (!m) continue;
 
       const w = weightFor(pa.key, pb.key);
+      // Pair-aware valence: conjunctions read by WHO fuses (Saturn/Pluto on a
+      // personal point binds; Jupiter on a soft point flows). Other aspects
+      // keep their geometric valence. Binding conjunctions score reduced.
+      const valence = pairValence(m.def.name as never, pa.key, pb.key);
       let coeff = CONFIG.ASPECT_COEFF[m.def.name];
-      if (m.def.name === "conjunction") {
-        const heavySaturn =
-          (pa.key === "Saturn" && (PERSONAL.has(pb.key) || ANGLES.has(pb.key))) ||
-          (pb.key === "Saturn" && (PERSONAL.has(pa.key) || ANGLES.has(pa.key)));
-        coeff = heavySaturn ? 0.6 : 1.0;
-      }
+      if (m.def.name === "conjunction" && valence === "tension") coeff = 0.6;
+
       const tOrb = 0.3 + 0.7 * (1 - m.orb / m.allowedOrb);
       const points = Math.round(w * coeff * tOrb * 100) / 100;
       if (points <= 0) continue;
+
+      // Birth-time sensitivity: if either side's Moon has a whole-day range
+      // (unknown time) and the contact doesn't hold across that range, say so.
+      let timeSensitive = false;
+      if (pa.key === "Moon" && chartA.moonRange) {
+        timeSensitive = !moonAspectStable(chartA.moonRange, pb.lon, pb.key, m.def.name);
+      }
+      if (!timeSensitive && pb.key === "Moon" && chartB.moonRange) {
+        timeSensitive = !moonAspectStable(chartB.moonRange, pa.lon, pa.key, m.def.name);
+      }
 
       const enA = bodyMeta(pa.key as never)?.en ?? pa.key;
       const enB = bodyMeta(pb.key as never)?.en ?? pb.key;
       const verb = ASPECT_VERB[m.def.name] ?? "meets";
       const headline = `${nameA}'s ${enA} ${verb} ${nameB}'s ${enB}, ${pairTheme(pa.key, pb.key)}.`;
-      const why = pairWhy(pa.key, pb.key, m.def.name, pa.lon, pb.lon, m.def.valence);
+      const why = pairWhy(pa.key, pb.key, m.def.name, pa.lon, pb.lon, valence);
       const orbStr = `${Math.round(m.orb * 10) / 10}°`;
-      const proof = `${nameA}'s ${enA} ${fmtPos(pa.lon)} · ${nameB}'s ${enB} ${fmtPos(pb.lon)} · ${ASPECT_WORD[m.def.name]} ${orbStr} orb`;
+      const proof = `${nameA}'s ${enA} ${fmtPos(pa.lon)} · ${nameB}'s ${enB} ${fmtPos(pb.lon)} · ${ASPECT_WORD[m.def.name]} ${orbStr} orb${timeSensitive ? " · birth-time sensitive" : ""}`;
       const sentence = `${headline} ${why}`;
 
       aspects.push({
+        id: "", // assigned after sorting so ids follow display order
         aBody: pa.key,
         bBody: pb.key,
         aLon: pa.lon,
@@ -309,7 +355,8 @@ export function computeSynastry(
         aspect: m.def.name,
         orb: Math.round(m.orb * 100) / 100,
         points,
-        valence: m.def.valence,
+        valence,
+        ...(timeSensitive ? { timeSensitive } : {}),
         headline,
         why,
         proof,
@@ -319,6 +366,7 @@ export function computeSynastry(
   }
 
   aspects.sort((x, y) => y.points - x.points);
+  aspects.forEach((a, i) => { a.id = `sa${i + 1}`; });
 
   // House overlays (both directions), only when both birth times are known.
   const overlays: SynOverlay[] = [];
@@ -331,6 +379,7 @@ export function computeSynastry(
       const bonus = CONFIG.OVERLAY_BONUS[house] ?? 0;
       if (bonus > 0) {
         overlays.push({
+          id: "",
           from,
           body,
           house,
@@ -343,19 +392,27 @@ export function computeSynastry(
   addOverlays("A", chartA, chartB, nameB, nameA);
   addOverlays("B", chartB, chartA, nameA, nameB);
   overlays.sort((a, b) => b.bonus - a.bonus);
+  overlays.forEach((o, i) => { o.id = `ov${i + 1}`; });
 
   const aspectTotal = aspects.reduce((s, a) => s + a.points, 0);
   const overlayTotal = Math.min(CONFIG.OVERLAY_CAP, overlays.reduce((s, o) => s + o.bonus, 0));
   const rawTotal = aspectTotal + overlayTotal;
 
-  // Sub-scores (facets — an aspect may feed more than one bucket).
+  // Sub-scores (facets — an aspect may feed more than one bucket). Each facet
+  // keys on ITS planet's involvement, symmetrically: Moon→emotional,
+  // Mars/Asc→attraction, Venus→affection, Mercury→communication,
+  // Saturn→commitment. (Affection previously only counted two exact pairs,
+  // which made a zero the STRUCTURAL default rather than a reading.)
   const bucket = { emotional: 0, attraction: 0, affection: 0, communication: 0, commitment: 0 };
   for (const a of aspects) {
     const involves = (k: string) => a.aBody === k || a.bBody === k;
     const isPair = (x: string, y: string) => pairKey(a.aBody, a.bBody) === pairKey(x, y);
     if (involves("Moon")) bucket.emotional += a.points;
-    if (involves("Mars") || involves("Ascendant")) bucket.attraction += a.points;
-    if (isPair("Venus", "Venus") || isPair("Venus", "Sun")) bucket.affection += a.points;
+    // Attraction = drive (Mars) plus the ROMANTIC first-impression contacts
+    // only — an Ascendant-Mercury chat contact is not chemistry, and counting
+    // every Asc touch made "The Spark" swallow nearly every couple.
+    if (involves("Mars") || isPair("Ascendant", "Venus") || isPair("Ascendant", "Mars")) bucket.attraction += a.points;
+    if (involves("Venus")) bucket.affection += a.points;
     if (involves("Mercury")) bucket.communication += a.points;
     if (involves("Saturn")) bucket.commitment += a.points;
   }
@@ -365,14 +422,33 @@ export function computeSynastry(
     else if (o.house === 4) bucket.emotional += o.bonus;
   }
 
-  const score = sat(rawTotal, CONFIG.K_OVERALL);
+  // ── The two axes ──
+  // Intensity: the old additive richness (every real contact adds connection).
+  // Ease: signed lean of the same points. Overlays count as flow (they are
+  // welcome placements by construction). A small sample is damped toward
+  // neutral 50 so two lonely trines don't proclaim perfect ease.
+  const flowPoints = aspects.reduce((s, a) => (a.valence === "tension" ? s : s + a.points), 0);
+  const tensionPoints = aspects.reduce((s, a) => (a.valence === "tension" ? s + a.points : s), 0);
+  const volume = flowPoints + tensionPoints + overlayTotal;
+  const intensity = sat(rawTotal, CONFIG.K_OVERALL);
+  const balance = volume > 0 ? (flowPoints + overlayTotal - tensionPoints) / volume : 0;
+  const damp = 1 - Math.exp(-volume / CONFIG.EASE_DAMP);
+  const ease = Math.round(Math.min(100, Math.max(0, 50 + 50 * balance * damp)));
+  const score = Math.round(CONFIG.BLEND_EASE * ease + (1 - CONFIG.BLEND_EASE) * intensity);
+
   const timeKnownBoth = !!chartA.asc && !!chartB.asc;
   const warnings: string[] = [];
   if (!timeKnownBoth) warnings.push("One or both birth times are unknown, so the Ascendant and house overlays are excluded. The score reflects planet-to-planet aspects only.");
+  if (aspects.some((a) => a.timeSensitive)) {
+    warnings.push("Contacts marked birth-time sensitive involve a Moon whose exact position depends on the unknown birth time — adding the time will firm them up.");
+  }
 
   return {
     score,
     band: bandFor(score),
+    axes: { ease, intensity },
+    flowPoints: Math.round(flowPoints * 100) / 100,
+    tensionPoints: Math.round(tensionPoints * 100) / 100,
     subscores: {
       emotional: sat(bucket.emotional, CONFIG.K_SUB),
       attraction: sat(bucket.attraction, CONFIG.K_SUB),

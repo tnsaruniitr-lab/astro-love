@@ -32,8 +32,18 @@ export default function SynastryWheel({
   const topAspects = syn.aspects.slice(0, 20);
   const maxPts = topAspects[0]?.points ?? 1;
 
+  // Screen-reader summary: the wheel's information as text, since assistive
+  // tech can't read the SVG geometry. Names, the score, and the strongest
+  // scored contacts each with their exact aspect.
+  const srSummary = [
+    `Synastry bi-wheel for ${syn.names.a} (inner) and ${syn.names.b} (outer). Compatibility score ${syn.score} of 100, ${syn.band.label}.`,
+    `Ease ${syn.axes.ease} of 100, intensity ${syn.axes.intensity} of 100.`,
+    `Strongest contacts: ${topAspects.slice(0, 8).map((x) => `${x.aBody} ${x.aspect} ${x.bBody} (${x.valence}, ${x.points.toFixed(1)} points)`).join("; ")}.`,
+  ].join(" ");
+
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="wheel-rise w-full h-full" role="img" aria-label="Synastry bi-wheel">
+    <>
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="wheel-rise w-full h-full" role="img" aria-label={srSummary}>
       <defs>
         <radialGradient id="syndisc" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor={pal.discFrom} />
@@ -95,6 +105,8 @@ export default function SynastryWheel({
         / 100
       </text>
     </svg>
+    <p className="sr-only">{srSummary}</p>
+    </>
   );
 
   function renderPlanets(placed: ReturnType<typeof declump>, orient: number, rGlyph: number, rDot: number, color: string) {

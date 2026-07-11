@@ -163,5 +163,12 @@ export const DE: UIStrings = {
     "compat": "Ihr habt euren Wert und euren Typ gesehen. Öffnet jeden weiteren Einblick, jeweils mit dem astrologischen Beleg dahinter.",
     "natal": "Öffne jede Antwort, die dein Chart über die Liebe bereithält, mit den genauen Stellungen dahinter.",
     "love": "Sieh, wie du zu jeder anderen Sprache der Liebe passt, worum du bitten solltest und was die Wissenschaft sagt."
+  },
+  "reading": {
+    "ease": "Leichtigkeit", "intensity": "Intensität",
+    "axesExplain": "Leichtigkeit zeigt, wohin eure Kontakte neigen; Intensität, wie viel zwischen euch passiert.",
+    "scoreRange": "Ohne genaue Geburtszeit kann das Ergebnis zwischen {min} und {max} liegen.",
+    "proseTitle": "Eure Deutung", "proseWriting": "Eure Deutung wird aus den Fakten der Karte geschrieben…",
+    "sampleCta": "Beispielpaar ansehen"
   }
 };

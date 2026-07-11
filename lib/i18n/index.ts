@@ -85,6 +85,13 @@ export interface UIStrings {
     perkOnce: string; perkInstant: string; perkAll: string;
     compat: string; natal: string; love: string;
   };
+
+  reading: {
+    ease: string; intensity: string; axesExplain: string;
+    scoreRange: string; // "…{min}–{max}…"
+    proseTitle: string; proseWriting: string;
+    sampleCta: string;
+  };
 }
 
 const DICTS: Record<Locale, UIStrings> = { en: EN, ru: RU, uk: UK, sk: SK, pl: PL, de: DE, es: ES, ar: AR };

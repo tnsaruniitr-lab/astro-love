@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { loveQuestions } from "@/lib/astro/natalReading";
 import { useT } from "./LocaleProvider";
-import type { ChartFacts } from "@/lib/astro/types";
+import type { LoveAnswer } from "@/lib/astro/natalReading";
 
-/** Tap-to-open love questions, answered deterministically from the chart. */
-export default function LoveQuestions({ chart }: { chart: ChartFacts }) {
+/** Tap-to-open love questions. The answers are computed SERVER-side and passed
+ *  in only after entitlement is confirmed — the premium payload never exists in
+ *  the browser for an unpaid visitor. */
+export default function LoveQuestions({ items }: { items: LoveAnswer[] }) {
   const t = useT();
-  const items = loveQuestions(chart);
   const [open, setOpen] = useState<number | null>(0);
 
   return (

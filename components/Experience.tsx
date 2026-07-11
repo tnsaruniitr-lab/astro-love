@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import BirthForm, { type BirthFormValues } from "./BirthForm";
 import ChartWheel from "./ChartWheel";
@@ -8,12 +8,12 @@ import PlanetTable from "./PlanetTable";
 import LoveQuestions from "./LoveQuestions";
 import TopNav from "./TopNav";
 import PaywallGate from "./Paywall";
-import { useUnlocked } from "@/lib/entitlement";
 import { useTheme } from "./ThemeProvider";
-import { useT } from "./LocaleProvider";
+import { useLocale, useT } from "./LocaleProvider";
+import { useReading } from "@/lib/useReading";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
-import type { ChartFacts } from "@/lib/astro/types";
+import type { ChartFacts, ChartInput } from "@/lib/astro/types";
 
 function chartFromForm(v: BirthFormValues): ChartFacts | null {
   const p = v.place;
@@ -38,12 +38,32 @@ export default function Experience({
   initialForm: BirthFormValues;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const [chart, setChart] = useState<ChartFacts | null>(initialChart);
   const [form, setForm] = useState<BirthFormValues>(initialForm);
   const [formKey, setFormKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const unlocked = useUnlocked();
+
+  // Server-confirmed gate: the premium love answers come back from /api/reading
+  // only when the signed entitlement token validates — never from a local flag.
+  const chartInput = useMemo<ChartInput | null>(() => {
+    const p = form.place;
+    if (!p || !chart) return null;
+    return {
+      name: form.name || undefined, place: p.label,
+      year: form.year, month: form.month, day: form.day, hour: form.hour, minute: form.minute,
+      timeKnown: form.timeKnown, lat: p.lat, lon: p.lon, tz: p.tz,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(form), chart]);
+  const readingReq = useMemo(
+    () => (chartInput ? { mode: "natal" as const, a: chartInput, locale } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chartInput ? JSON.stringify(chartInput) : null, locale],
+  );
+  const { gate, natalAnswers } = useReading(readingReq);
+  const unlocked = gate === "open";
 
   // Restore the last chart the visitor built (e.g. after returning from
   // checkout), so the unlocked love answers are about their chart, not the demo.
@@ -95,8 +115,8 @@ export default function Experience({
             <>
               <ResultCard chart={chart} />
               {unlocked
-                ? <LoveQuestions chart={chart} />
-                : <PaywallGate blurb={t.pay.natal} next="/natal" peek={<LoveQuestions chart={chart} />} />}
+                ? (natalAnswers ? <LoveQuestions items={natalAnswers} /> : <AnswersLoading />)
+                : <PaywallGate blurb={t.pay.natal} next="/natal" />}
             </>
           ) : (
             <NatalEmpty />
@@ -116,6 +136,19 @@ function NatalEmpty() {
       <div className="inline-flex flex-col items-center gap-2 text-haze/70">
         <span className="text-2xl text-gold/55" aria-hidden>✦</span>
         <p className="text-sm">{t.natal.empty}</p>
+      </div>
+    </div>
+  );
+}
+
+// Shown briefly after unlock while the server returns the love answers.
+function AnswersLoading() {
+  return (
+    <div className="glass p-6 sm:p-7" aria-live="polite">
+      <div className="space-y-3 animate-pulse">
+        {[80, 70, 88, 64, 76].map((w, i) => (
+          <div key={i} className="h-4 rounded-full bg-cream/10" style={{ width: `${w}%` }} />
+        ))}
       </div>
     </div>
   );

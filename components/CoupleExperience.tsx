@@ -1,17 +1,20 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import BirthFields, { type BirthFormValues } from "./BirthFields";
 import SynastryWheel from "./SynastryWheel";
 import TopNav from "./TopNav";
 import PaywallGate from "./Paywall";
-import { useUnlocked } from "@/lib/entitlement";
 import { useTheme } from "./ThemeProvider";
-import { useT } from "./LocaleProvider";
+import { useLocale, useT } from "./LocaleProvider";
 import { fill } from "@/lib/i18n";
 import { BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import { computeSynastry, BODY_ROLE, ASPECT_MEANING, type SynastryResult, type SynAspect, type SynOverlay } from "@/lib/astro/synastry";
+import { coupleScoreRange, type ScoreRange } from "@/lib/astro/uncertainty";
+import { contactFacts, enrichSections } from "@/lib/astro/enrich";
+import { useReading } from "@/lib/useReading";
+import type { CoupleProse } from "@/lib/server/writer";
 import {
   archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
   tendToList, flowGrowStory,
@@ -27,6 +30,10 @@ export interface CoupleResult {
   a: ChartFacts;
   b: ChartFacts;
   syn: SynastryResult;
+  /** The raw inputs behind the charts — needed for the server gate + prose. */
+  inputs: { a: ChartInput; b: ChartInput };
+  /** Score range when a birth time is unknown (honest uncertainty). */
+  range: ScoreRange | null;
 }
 
 const ASPECT_GLYPH: Record<string, string> = {
@@ -36,6 +43,15 @@ const ASPECT_GLYPH: Record<string, string> = {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const COMPAT_KEY = "am_compat";
+
+// The staged "reading the sky" ritual, played after the (instant) compute.
+const LOAD_STAGES = [
+  "Casting both birth charts",
+  "Placing Venus, Mars and the Moon",
+  "Measuring the angles between you",
+  "Finding where your planets share a home",
+  "Reading what the degrees say",
+];
 
 export default function CoupleExperience({
   initialA,
@@ -52,6 +68,7 @@ export default function CoupleExperience({
   const [b, setB] = useState(initialB);
   const [result, setResult] = useState<CoupleResult | null>(initialResult);
   const [loading, setLoading] = useState(false);
+  const [loadStage, setLoadStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // 0 = initial/SSR or restored result (show everything). Each Calculate bumps
   // this and remounts <Result> into the staged tap-to-reveal "ritual".
@@ -72,7 +89,8 @@ export default function CoupleExperience({
     const chartA = computeChart(inA);
     const chartB = computeChart(inB);
     const syn = computeSynastry(chartA, chartB, inA.name ?? t.compat.personA, inB.name ?? t.compat.personB);
-    return { a: chartA, b: chartB, syn };
+    const range = coupleScoreRange(inA, inB);
+    return { a: chartA, b: chartB, syn, inputs: { a: inA, b: inB }, range };
   };
 
   // Returning visitor: if there's no shared-link result, restore the last
@@ -92,18 +110,46 @@ export default function CoupleExperience({
   }, []);
 
   async function calculate() {
-    setLoading(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 280)); // keep the "Reading the stars…" beat
+    // Compute first (instant, in-browser) so a bad input errors immediately —
+    // no point playing 3s of theater and then failing.
+    let res: CoupleResult;
     try {
-      setResult(compute(a, b));
-      setRevealKey((k) => k + 1);
-      try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
+      res = compute(a, b);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setLoading(false);
+      return;
     }
+    try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
+
+    // Deliberate staged reveal — the "reading the sky" ritual. The math is done;
+    // the pause builds anticipation. Honor reduced-motion with a short beat.
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    setLoading(true);
+    if (reduce) {
+      setLoadStage(LOAD_STAGES.length - 1);
+      await new Promise((r) => setTimeout(r, 300));
+    } else {
+      for (let i = 0; i < LOAD_STAGES.length; i++) {
+        setLoadStage(i);
+        await new Promise((r) => setTimeout(r, 720));
+      }
+    }
+    setResult(res);
+    setRevealKey((k) => k + 1);
+    setLoading(false);
+    setLoadStage(0);
+  }
+
+  // Let a cold visitor feel the wow-moment before entering two full birth
+  // charts — the biggest funnel leak was gating the reveal behind the effort
+  // it's meant to justify.
+  function loadSample() {
+    setError(null);
+    setA(SAMPLE_A);
+    setB(SAMPLE_B);
+    setResult(compute(SAMPLE_A, SAMPLE_B));
+    setRevealKey((k) => k + 1);
   }
 
   return (
@@ -136,9 +182,11 @@ export default function CoupleExperience({
         {error && <p className="mt-3 text-sm text-rose/90">{error}</p>}
       </div>
 
-      {result
-        ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
-        : <EmptyState />}
+      {loading
+        ? <CalculatingLoader stage={loadStage} />
+        : result
+          ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
+          : <EmptyState onSample={loadSample} />}
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
         <p>{t.compat.footer1}</p>
@@ -148,17 +196,57 @@ export default function CoupleExperience({
   );
 }
 
-function EmptyState() {
-  const t = useT();
+// The staged celestial loader — two bodies orbiting a bright core, with the
+// ritual line advancing beneath. Reduced-motion users get the final stage only.
+function CalculatingLoader({ stage }: { stage: number }) {
   return (
-    <section className="mt-12 mb-2 text-center">
-      <div className="inline-flex flex-col items-center gap-2 text-haze/70">
-        <span className="text-2xl text-gold/55" aria-hidden>✦</span>
-        <p className="text-sm">{t.compat.empty}</p>
+    <section className="mt-12 mb-2 flex flex-col items-center gap-7 py-10" aria-live="polite" aria-busy="true">
+      <div className="relative motion-reduce:hidden" style={{ width: 132, height: 132 }}>
+        <div className="absolute inset-0 rounded-full border border-gold/15" />
+        <div className="absolute rounded-full border border-rose/25" style={{ inset: 24 }} />
+        <div className="absolute top-1/2 left-1/2 rounded-full" style={{ width: 12, height: 12, marginTop: -6, marginLeft: -6, background: "radial-gradient(circle at 40% 35%, #fff, rgb(var(--c-goldbright)))", boxShadow: "0 0 20px 4px rgb(var(--c-goldbright) / 0.5)" }} />
+        <div className="absolute inset-0 animate-spin" style={{ animationDuration: "3.2s" }}>
+          <span className="absolute left-1/2 rounded-full" style={{ top: -5, marginLeft: -5, width: 10, height: 10, background: "rgb(var(--c-gold))", boxShadow: "0 0 12px 2px rgb(var(--c-gold) / 0.7)" }} />
+        </div>
+        <div className="absolute animate-spin" style={{ inset: 24, animationDuration: "2.1s", animationDirection: "reverse" }}>
+          <span className="absolute left-1/2 rounded-full" style={{ top: -4, marginLeft: -4, width: 8, height: 8, background: "rgb(var(--c-rose))", boxShadow: "0 0 12px 2px rgb(var(--c-rose) / 0.7)" }} />
+        </div>
+      </div>
+      <p key={stage} className="font-display italic text-lg sm:text-xl text-goldbright text-center fade-up px-6">{LOAD_STAGES[stage]}…</p>
+      <div className="w-52 h-[3px] rounded-full bg-cream/10 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${((stage + 1) / LOAD_STAGES.length) * 100}%`, background: "linear-gradient(90deg, rgb(var(--c-rose)), rgb(var(--c-goldbright)))", transition: "width 700ms cubic-bezier(.4,0,.2,1)" }} />
       </div>
     </section>
   );
 }
+
+function EmptyState({ onSample }: { onSample: () => void }) {
+  const t = useT();
+  return (
+    <section className="mt-12 mb-2 text-center">
+      <div className="inline-flex flex-col items-center gap-3 text-haze/70">
+        <span className="text-2xl text-gold/55" aria-hidden>✦</span>
+        <p className="text-sm">{t.compat.empty}</p>
+        <button onClick={onSample} className="mt-1 text-xs uppercase tracking-[0.18em] text-gold/85 hover:text-gold underline underline-offset-4">
+          {t.reading.sampleCta}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// A pre-filled sample couple (no real people) so the reveal ritual, gauge,
+// axes, and paywall peek play instantly with zero data entry.
+const SAMPLE_A: BirthFormValues = {
+  name: "Mia",
+  place: { label: "Lisbon, Portugal", name: "Lisbon", country: "Portugal", lat: 38.7223, lon: -9.1393, tz: "Europe/Lisbon" },
+  year: 1994, month: 6, day: 12, hour: 9, minute: 20, timeKnown: true,
+};
+const SAMPLE_B: BirthFormValues = {
+  name: "Leo",
+  place: { label: "Buenos Aires, Argentina", name: "Buenos Aires", country: "Argentina", lat: -34.6037, lon: -58.3816, tz: "America/Argentina/Buenos_Aires" },
+  year: 1991, month: 11, day: 3, hour: 21, minute: 45, timeKnown: true,
+};
 
 function Panel({ label, accent, children }: { label: string; accent: string; children: React.ReactNode }) {
   return (
@@ -174,18 +262,32 @@ function Panel({ label, accent, children }: { label: string; accent: string; chi
 
 // ───────────────────────── result deck ─────────────────────────
 function Result({ result, staged, forms }: { result: CoupleResult; staged: boolean; forms: { a: BirthFormValues; b: BirthFormValues } }) {
-  const { a, b, syn } = result;
+  const { a, b, syn, inputs, range } = result;
   const t = useT();
+  const { locale } = useLocale();
 
   const archReading = archetypeReading(syn);
   const thread = strongestThread(syn);
   const reads = subscoreRead(syn);
 
+  // Premium is confirmed by the SERVER (signed entitlement token), not by a
+  // local flag — and the AI-written reading only exists server-side.
+  const readingReq = useMemo(
+    () => ({ mode: "couple" as const, a: inputs.a, b: inputs.b, locale }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(inputs), locale],
+  );
+  const { gate, prose, proseLoading } = useReading(readingReq);
+  const unlocked = gate === "open";
+
   const h = t.compat.hints;
   const cards: { key: string; hint: string; node: React.ReactNode }[] = [
-    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} /> },
+    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} range={range} /> },
     { key: "type", hint: h.type, node: <ArchetypeCard reading={archReading} /> },
-    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} /> }] : []),
+    ...(unlocked && (prose || proseLoading)
+      ? [{ key: "prose", hint: t.reading.proseTitle, node: <ProseCard prose={prose as CoupleProse | null} loading={proseLoading} /> }]
+      : []),
+    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} names={syn.names} /> }] : []),
     { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
     { key: "tend", hint: h.tend, node: <TendCard syn={syn} /> },
     { key: "flowgrow", hint: h.flowgrow, node: <FlowGrowCard syn={syn} /> },
@@ -195,9 +297,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   ];
 
   // Free tier: the score and the couple-type cards. Everything past that sits
-  // behind a single $2 unlock. The gate reads entitlement reactively, so a
-  // confirmed payment reveals the rest without a reload.
-  const unlocked = useUnlocked();
+  // behind a single $2 unlock, confirmed server-side.
   const FREE = 2;
   const total = cards.length;
   const gateAt = unlocked ? total : Math.min(FREE, total);
@@ -243,7 +343,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   return (
     <section className="mt-10 space-y-5">
       {staged && (
-        <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze">
+        <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze" aria-live="polite">
           <span><span key={done} className="count-tick">✦ {fill(t.compat.revealedOfTotal, { n: done, total })}</span> {t.compat.revealedWord}</span>
           {revealed < gateAt && (
             <button onClick={revealAll} className="text-gold/80 hover:text-gold underline underline-offset-4">
@@ -262,7 +362,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
       </div>
 
       {locked && atGate && (
-        <PaywallGate blurb={t.pay.compat} next={next} peek={cards[gateAt]?.node} />
+        <PaywallGate blurb={t.pay.compat} next={next} />
       )}
 
       {unlocked && revealed >= total && syn.warnings.length > 0 && (
@@ -292,8 +392,11 @@ const FacedownCard = forwardRef<HTMLButtonElement, { hint: string; onReveal: () 
 );
 
 // ───────────────────────── individual cards ─────────────────────────
-function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues } }) {
+function ScoreCard({ syn, forms, range }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues }; range: ScoreRange | null }) {
   const { palette: pal } = useTheme();
+  const t = useT();
+  // Only surface the range when the unknown birth time actually moves the score.
+  const showRange = range && range.spread >= 3;
   return (
     <div className="glass p-6 sm:p-8 text-center">
       <div className="stagger flex flex-col items-center">
@@ -303,10 +406,69 @@ function ScoreCard({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormV
           <span style={{ color: pal.personB }}>{syn.names.b}</span>
         </div>
         <div className="mt-3"><ScoreGauge score={syn.score} /></div>
+        {showRange && (
+          <p className="text-[11px] text-gold/80 mt-1.5 tabular-nums">
+            {fill(t.reading.scoreRange, { min: range!.min, max: range!.max })}
+          </p>
+        )}
         <h2 className="font-display text-3xl text-goldbright mt-3">{syn.band.label}</h2>
         <p className="text-cream/85 max-w-md mx-auto mt-2 text-[15px] leading-relaxed">{scoreMeaning(syn)}</p>
+        <TwoAxes ease={syn.axes.ease} intensity={syn.axes.intensity} />
       </div>
       <ShareRow syn={syn} forms={forms} />
+    </div>
+  );
+}
+
+// The honest two-axis readout: which way the bond leans (ease) vs how much is
+// going on (intensity). Kills the "a clashing couple scores higher" confusion.
+function TwoAxes({ ease, intensity }: { ease: number; intensity: number }) {
+  const { palette: pal } = useTheme();
+  const t = useT();
+  const Axis = ({ label, value, color }: { label: string; value: number; color: string }) => (
+    <div className="text-left flex-1">
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="text-[10px] uppercase tracking-wider text-haze/90">{label}</span>
+        <span className="text-sm tabular-nums" style={{ color }}>{value}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-cream/10 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color, transition: "width 900ms cubic-bezier(0.22,1,0.36,1)" }} />
+      </div>
+    </div>
+  );
+  return (
+    <div className="w-full max-w-sm mx-auto mt-5">
+      <div className="flex gap-4">
+        <Axis label={t.reading.ease} value={ease} color={pal.aspect.harmonious} />
+        <Axis label={t.reading.intensity} value={intensity} color={pal.personB} />
+      </div>
+      <p className="text-[11px] text-haze/70 leading-relaxed mt-2.5">{t.reading.axesExplain}</p>
+    </div>
+  );
+}
+
+// The AI-written, chart-grounded reading (the premium centerpiece). Falls back
+// silently: if prose is null the card simply isn't rendered by the deck.
+function ProseCard({ prose, loading }: { prose: CoupleProse | null; loading: boolean }) {
+  const t = useT();
+  return (
+    <div className="glass p-6 sm:p-9 stagger">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">{t.reading.proseTitle}</div>
+      {loading && !prose ? (
+        <div className="mt-6 flex flex-col items-center gap-3 py-8 text-haze/80">
+          <span className="text-2xl text-gold/60 animate-pulse" aria-hidden>✦</span>
+          <p className="text-sm" aria-live="polite">{t.reading.proseWriting}</p>
+        </div>
+      ) : (
+        <div className="mt-5 space-y-5 max-w-2xl mx-auto">
+          {prose?.sections.map((s) => (
+            <div key={s.key}>
+              <h4 className="font-display text-lg text-goldbright">{s.title}</h4>
+              <p className="text-[15px] text-cream/90 leading-relaxed mt-1.5 whitespace-pre-line">{s.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -359,7 +521,10 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
           so it leans {reading.tilt === "harmonious" ? "toward ease" : "toward growth"}.
         </p>
 
-        {a && (
+        {a && (() => {
+          const af = contactFacts(a);
+          const tier: Record<string, string> = { exact: "near-exact", tight: "tight", moderate: "moderate", wide: "wide" };
+          return (
           <div className="mt-4 pt-4 border-t border-cream/10 text-center">
             <div className="text-[10px] uppercase tracking-[0.2em] text-haze/60 mb-2">The contact that anchors it</div>
             <div className="flex items-center justify-center gap-2 text-2xl" style={{ fontFamily: GLYPH_FONT }}>
@@ -368,6 +533,18 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
               <span style={{ color: pal.personB }}>{bMeta?.glyph ?? "↑"}</span>
             </div>
             <p className="text-[13px] text-cream/90 mt-2 leading-snug">{a.headline}</p>
+            {/* Technical taste — the deterministic facts, free tier. The full
+                breakdown (geometry, dignity, meaning) lives in the unlocked deck. */}
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-[9.5px] uppercase tracking-wider font-medium">
+              <span className="px-2 py-0.5 rounded-full" style={{ background: `${vc}22`, color: vc }}>{tier[af.orbTier]}, {a.orb.toFixed(1)}°</span>
+              {af.sharedElement && <span className="px-2 py-0.5 rounded-full bg-cream/[0.06] text-haze/85">{af.sharedElement} {a.aspect}</span>}
+              {af.mutualReception && <span className="px-2 py-0.5 rounded-full bg-gold/15 text-goldbright border border-gold/30">✦ mutual reception</span>}
+            </div>
+            {af.mutualReception && (
+              <p className="text-[11.5px] text-goldbright/90 mt-2 leading-snug max-w-md mx-auto">
+                A rare mutual reception: {a.aBody} sits in {af.aSign} ({a.bBody}&apos;s sign) while {a.bBody} sits in {af.bSign} ({a.aBody}&apos;s sign) — each planet in the other&apos;s home, mutually strengthening.
+              </p>
+            )}
             <p className="text-[12px] text-haze/85 mt-1 leading-snug max-w-md mx-auto">{a.why}</p>
             {(BODY_ROLE[a.aBody] || BODY_ROLE[a.bBody]) && (
               <p className="text-[11px] text-haze/65 mt-2 leading-snug max-w-md mx-auto">
@@ -378,36 +555,60 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
             )}
             <p className="text-[10px] text-haze/50 mt-2 tabular-nums">{a.proof}</p>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
 }
 
-function ThreadCard({ thread }: { thread: Thread }) {
+function ThreadCard({ thread, names }: { thread: Thread; names: { a: string; b: string } }) {
   const { palette: pal } = useTheme();
   const t = useT();
-  const { aspect: a, tightness } = thread;
+  const { aspect: a } = thread;
   const aMeta = BODIES.find((x) => x.key === a.aBody);
   const bMeta = BODIES.find((x) => x.key === a.bBody);
   const vc = pal.aspect[a.valence];
+  // Deterministic technical depth (mutual reception, element, modality, orb
+  // tier) — computed, never guessed, and fully available with no API key.
+  const facts = contactFacts(a);
+  const sections = enrichSections(a, names);
+  const tierLabel: Record<string, string> = { exact: "near-exact", tight: "tight", moderate: "moderate", wide: "wide" };
+  const kickerColor = (kind: string) => (kind === "dignity" ? pal.aspect.blending : kind === "watch" ? pal.aspect.tension : pal.gauge.from);
+
   return (
-    <div className="glass p-6 sm:p-8 text-center stagger">
-      <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.strongestThread}</div>
-      <div className="mt-3 flex items-center justify-center gap-3 text-4xl" style={{ fontFamily: GLYPH_FONT }}>
-        <span className="planet-pop" style={{ color: pal.personA, animationDelay: "0s" }}>{aMeta?.glyph ?? "↑"}</span>
-        <span className="planet-pop" style={{ color: vc, fontSize: "0.8em", animationDelay: "0.12s", filter: `drop-shadow(0 0 6px ${vc})` }}>{ASPECT_GLYPH[a.aspect]}</span>
-        <span className="planet-pop" style={{ color: pal.personB, animationDelay: "0.24s" }}>{bMeta?.glyph ?? "↑"}</span>
+    <div className="glass overflow-hidden stagger">
+      <div className="px-6 sm:px-8 pt-6 pb-5 text-center border-b border-cream/10">
+        <div className="text-[10px] uppercase tracking-[0.34em] text-gold/80">{t.compat.strongestThread}</div>
+        <div className="mt-3 flex items-center justify-center gap-3 text-4xl" style={{ fontFamily: GLYPH_FONT }}>
+          <span className="planet-pop" style={{ color: pal.personA, animationDelay: "0s" }}>{aMeta?.glyph ?? "↑"}</span>
+          <span className="planet-pop" style={{ color: vc, fontSize: "0.8em", animationDelay: "0.12s", filter: `drop-shadow(0 0 6px ${vc})` }}>{ASPECT_GLYPH[a.aspect]}</span>
+          <span className="planet-pop" style={{ color: pal.personB, animationDelay: "0.24s" }}>{bMeta?.glyph ?? "↑"}</span>
+        </div>
+        <p className="font-display text-xl sm:text-2xl text-cream max-w-md mx-auto mt-4">{a.headline}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[10px] uppercase tracking-wider font-medium">
+          <span className="px-2.5 py-1 rounded-full" style={{ background: `${vc}22`, color: vc }}>{tierLabel[facts.orbTier]}, {a.orb.toFixed(1)}°</span>
+          {facts.sharedElement && (
+            <span className="px-2.5 py-1 rounded-full bg-cream/[0.06] text-haze">{facts.sharedElement} {a.aspect}</span>
+          )}
+          {facts.mutualReception && (
+            <span className="px-2.5 py-1 rounded-full bg-gold/15 text-goldbright border border-gold/30">✦ mutual reception</span>
+          )}
+        </div>
       </div>
-      <p className="font-display text-xl sm:text-2xl text-cream max-w-md mx-auto mt-4">{a.headline}</p>
-      <p className="text-sm text-haze/85 max-w-md mx-auto mt-2 leading-snug">{a.why}</p>
-      <p className="text-[11px] text-haze/55 max-w-md mx-auto mt-2 tabular-nums">{a.proof}</p>
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-haze">
-        {tightness && (
-          <span className="px-2.5 py-1 rounded-full bg-gold/10 text-gold/90 uppercase tracking-wider">{tightness}, {a.orb.toFixed(1)}°</span>
-        )}
-        <span>{t.compat.strongestThreadTag}</span>
-      </div>
+
+      {sections.map((s) => (
+        <div
+          key={s.kind}
+          className="px-6 sm:px-8 py-4 border-b border-cream/[0.06] text-left"
+          style={s.spotlight ? { background: `linear-gradient(120deg, ${pal.aspect.tension}14, transparent 70%)` } : undefined}
+        >
+          <div className="text-[10px] uppercase tracking-[0.18em] mb-1.5" style={{ color: kickerColor(s.kind) }}>{s.kicker}</div>
+          <p className="text-[14.5px] text-cream/90 leading-relaxed">{s.body}</p>
+        </div>
+      ))}
+
+      <p className="px-6 sm:px-8 py-3 text-[11px] text-haze/60 tabular-nums leading-relaxed overflow-x-auto whitespace-nowrap">{a.proof}</p>
     </div>
   );
 }
@@ -640,14 +841,38 @@ function ShineCard({ reads }: { reads: SubscoreRead }) {
 function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues } }) {
   const t = useT();
   const [copied, setCopied] = useState<string | null>(null);
+  // Prefer the PII-safe encrypted link (?s=). It's minted server-side, so we
+  // fetch it once; until it arrives (or if it fails), fall back to the legacy
+  // cleartext ?r= link so sharing never breaks.
+  const [shareLink, setShareLink] = useState<string>("");
   const card = buildShareCard(syn);
   const caps = buildCaptions(syn);
 
-  const link = () => {
+  const legacyLink = () => {
     if (typeof window === "undefined") return "https://astro-love.app/";
     const base = window.location.origin;
     try { return `${base}/?r=${encodeReading(forms.a, forms.b)}`; } catch { return `${base}/`; }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = encodeReading(forms.a, forms.b);
+        const res = await fetch("/api/share/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ r }),
+        });
+        const d = await res.json();
+        if (!cancelled && d?.s) setShareLink(`${window.location.origin}/?s=${encodeURIComponent(d.s)}`);
+      } catch { /* keep the legacy fallback */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(forms)]);
+
+  const link = () => shareLink || legacyLink();
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
   const text = caps.story;
 

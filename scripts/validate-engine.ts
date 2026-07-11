@@ -120,9 +120,14 @@ check("band label present", syn.band.label.length > 0, syn.band.label);
 // Determinism
 const syn2 = computeSynastry(ref, chartB, "Anna", "Dmitri");
 check("deterministic (same score on re-run)", syn.score === syn2.score && JSON.stringify(syn) === JSON.stringify(syn2));
-// Self-synastry should score very high (a chart is maximally "compatible" with itself)
+// Self-synastry is intense by construction (identical charts share every
+// contact), but it must NOT be presented as near-perfect compatibility — the
+// two-axis model keeps it out of automatic top-band territory. We assert only
+// that it stays plausible and bounded, not that it beats every real couple.
 const selfSyn = computeSynastry(ref, ref, "A", "A");
-check("self-synastry scores higher than the couple", selfSyn.score > syn.score, `self ${selfSyn.score} > couple ${syn.score}`);
+check("self-synastry stays within [0,100]", selfSyn.score >= 0 && selfSyn.score <= 100, `self ${selfSyn.score}`);
+check("self-synastry intensity is high (identical charts)", selfSyn.axes.intensity >= 70, `intensity ${selfSyn.axes.intensity}`);
+check("two axes present and bounded", syn.axes.ease >= 0 && syn.axes.ease <= 100 && syn.axes.intensity >= 0 && syn.axes.intensity <= 100, `ease ${syn.axes.ease} / intensity ${syn.axes.intensity}`);
 
 console.log(`  Couple score: ${syn.score}/100 — "${syn.band.label}"`);
 console.log(`  Sub-scores  : emo ${syn.subscores.emotional} · attr ${syn.subscores.attraction} · aff ${syn.subscores.affection} · comm ${syn.subscores.communication} · commit ${syn.subscores.commitment}`);

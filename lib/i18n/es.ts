@@ -163,5 +163,12 @@ export const ES: UIStrings = {
     "compat": "Has visto tu puntuación y tu tipo. Abre cada percepción restante, cada una con la prueba astrológica detrás.",
     "natal": "Abre cada respuesta que tu carta guarda sobre el amor, con las posiciones exactas detrás de cada una.",
     "love": "Descubre cómo encajas con cada otro lenguaje del amor, qué pedir y qué dice la ciencia."
+  },
+  "reading": {
+    "ease": "Fluidez", "intensity": "Intensidad",
+    "axesExplain": "La fluidez muestra hacia dónde se inclinan sus contactos; la intensidad, cuánto sucede entre ustedes.",
+    "scoreRange": "Sin la hora exacta de nacimiento, el resultado puede variar entre {min} y {max}.",
+    "proseTitle": "Su lectura", "proseWriting": "Escribiendo su lectura a partir de los datos de la carta…",
+    "sampleCta": "Ver una pareja de ejemplo"
   }
 };

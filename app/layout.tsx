@@ -5,7 +5,10 @@ import { LocaleProvider } from "@/components/LocaleProvider";
 import ThemeFX from "@/components/ThemeFX";
 import UnlockOnReturn from "@/components/UnlockOnReturn";
 
+// metadataBase lets per-page relative OG image URLs (/api/og?...) resolve to
+// absolute URLs in link previews. Override via SITE_URL in production.
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || "https://astromatch.carecompass.me"),
   title: "Astro-Love · Natal Chart",
   description:
     "Your real birth chart, computed from astronomy, the foundation of math-based love compatibility.",

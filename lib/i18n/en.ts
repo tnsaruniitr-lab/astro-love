@@ -95,4 +95,11 @@ export const EN: UIStrings = {
     natal: "Open every answer your chart holds about love, with the exact placements behind each one.",
     love: "See how you pair with every other love language, what to ask for, and the science behind it.",
   },
+  reading: {
+    ease: "Ease", intensity: "Intensity",
+    axesExplain: "Ease shows which way your contacts lean; intensity shows how much is going on between you.",
+    scoreRange: "Without an exact birth time the score can range {min}–{max}.",
+    proseTitle: "Your reading", proseWriting: "Writing your reading from the chart facts…",
+    sampleCta: "See a sample match"
+  }
 };

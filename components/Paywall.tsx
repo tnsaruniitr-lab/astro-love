@@ -3,29 +3,30 @@
 import CheckoutButton from "./CheckoutButton";
 import { useT } from "./LocaleProvider";
 
-/** The unlock moment. A blurred, veiled peek of the locked content sits behind
- *  a centered glass call-to-action, so the user can see there is more without
- *  reading it. One $2 unlock opens every flow on the device. */
+/** The unlock moment. A DECOY shimmer sits behind a centered glass call-to-
+ *  action, so the user senses there is more without the real premium text ever
+ *  entering the DOM. (Rendering the real locked content behind CSS blur would
+ *  leak it to anyone who deletes the blur class — the paywall must be an
+ *  access boundary, not a visual one.) One $2 unlock opens every flow. */
 export default function PaywallGate({
   blurb,
-  peek,
   next,
 }: {
   blurb: string;
-  peek?: React.ReactNode;
   next?: string;
 }) {
   const t = useT();
   return (
     <div className="relative overflow-hidden rounded-3xl border border-gold/15">
-      {peek && (
-        <div
-          aria-hidden
-          className="absolute inset-0 scale-[1.04] blur-[8px] opacity-40 pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black,transparent_85%)]"
-        >
-          {peek}
-        </div>
-      )}
+      {/* Content-free teaser: blurred placeholder lines, never the real text. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 blur-[7px] opacity-30 pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black,transparent_88%)] px-8 py-10 space-y-3"
+      >
+        {[92, 78, 85, 64, 88, 72, 80].map((w, i) => (
+          <div key={i} className="h-3.5 rounded-full bg-cream/20" style={{ width: `${w}%` }} />
+        ))}
+      </div>
       <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-ink/55 via-ink/80 to-ink/95" />
 
       <div className="relative px-5 py-12 sm:py-16 flex flex-col items-center text-center">

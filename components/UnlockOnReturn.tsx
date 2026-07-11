@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { readUnlocked, grantUnlock } from "@/lib/entitlement";
+import { readEntitlement, grantEntitlement } from "@/lib/entitlement";
 
 // Makes a paid reading portable. Any link that carries ?paid=<ref> (handed out
 // on the success screen, savable / shareable) re-verifies that ref server-side
@@ -10,14 +10,14 @@ import { readUnlocked, grantUnlock } from "@/lib/entitlement";
 // is stripped afterward so it isn't kept or re-shared by accident.
 export default function UnlockOnReturn() {
   useEffect(() => {
-    if (readUnlocked()) { stripParam(); return; }
+    if (readEntitlement()) { stripParam(); return; }
     const ref = new URLSearchParams(window.location.search).get("paid");
     if (!ref) return;
 
     let done = false;
     fetch(`/api/pay/verify/?ref=${encodeURIComponent(ref)}`)
       .then((r) => r.json())
-      .then((d) => { if (!done && d.verified) grantUnlock(); })
+      .then((d) => { if (!done && d.verified && d.token) grantEntitlement({ ref, token: String(d.token) }); })
       .catch(() => { /* ignore; the gate simply stays up */ })
       .finally(() => { done = true; stripParam(); });
 

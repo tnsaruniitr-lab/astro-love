@@ -10,3 +10,7 @@ next-env.d.ts
 *.tsbuildinfo
 .DS_Store
 .env*.local
+
+# local dev tooling
+.claude/
+.env.local

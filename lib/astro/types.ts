@@ -52,6 +52,15 @@ export interface ChartInput {
   place?: string;        // human label
 }
 
+/** Where the true Moon could sit across the whole birth day when the exact
+ *  time is unknown (the Moon moves ~12-15°/day; every other body far less). */
+export interface MoonRange {
+  lonStart: number;      // Moon longitude at local 00:00
+  lonEnd: number;        // Moon longitude at local 23:59
+  spanDeg: number;       // shortest arc covered across the day
+  crossesSign: boolean;  // true when start/end fall in different signs
+}
+
 export interface ChartFacts {
   schemaVersion: string;
   engine: string;
@@ -68,9 +77,11 @@ export interface ChartFacts {
     timeKnown: boolean;
   };
   planets: PlacedBody[];
-  asc: Angle | null;     // null when time unknown
+  asc: Angle | null;     // null when time unknown OR the tz was invalid
   mc: Angle | null;
   houseCusps: number[] | null; // 12 cusp longitudes, null when time unknown
   aspects: NatalAspect[];
+  /** Present only when timeKnown=false: the Moon's possible range that day. */
+  moonRange?: MoonRange;
   warnings: string[];
 }
