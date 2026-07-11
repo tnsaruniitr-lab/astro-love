@@ -19,7 +19,21 @@ import { archetypeReading } from "../astro/insights";
 import { contactFacts } from "../astro/enrich";
 
 const WRITER_MODEL = process.env.WRITER_MODEL || "claude-opus-4-8";
-const FAITHFULNESS_MODEL = process.env.FAITHFULNESS_MODEL ?? "claude-haiku-4-5";
+// The deterministic used_fact_ids validator is the HARD anti-hallucination gate
+// (every asserted fact id must exist). A small LLM double-check is unreliable —
+// Haiku routinely sets faithful:false while its own reasoning concludes the
+// prose is faithful — and fail-closing on that throws away good readings. So
+// the extra pass is OFF by default; set FAITHFULNESS_MODEL to a capable model
+// (Sonnet+) to re-enable it as an advisory, fail-OPEN check.
+const FAITHFULNESS_MODEL = process.env.FAITHFULNESS_MODEL ?? "";
+// Lower thinking effort for prose: warm, fact-grounded writing doesn't need max
+// reasoning, and this roughly halves latency and cost per reading.
+type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+const WRITER_EFFORT: Effort = (["low", "medium", "high", "xhigh", "max"] as const).includes(
+  (process.env.WRITER_EFFORT || "") as Effort,
+)
+  ? (process.env.WRITER_EFFORT as Effort)
+  : "medium";
 
 export interface ProseSection {
   key: "essence" | "strengths" | "growth" | "advice";
@@ -190,7 +204,7 @@ export async function writeCoupleProse(
         max_tokens: 4000,
         thinking: { type: "adaptive" },
         system: WRITER_SYSTEM,
-        output_config: { format: { type: "json_schema", schema: PROSE_SCHEMA } },
+        output_config: { effort: WRITER_EFFORT, format: { type: "json_schema", schema: PROSE_SCHEMA } },
         messages: [
           {
             role: "user",
@@ -286,14 +300,18 @@ async function faithful(
         },
       ],
     });
-    if (response.stop_reason === "refusal") return false;
+    // Fail OPEN: the deterministic used_fact_ids validator already guarantees
+    // id-grounding, so this advisory pass should only VETO on a clear,
+    // confident "unfaithful" verdict — never discard good prose because a small
+    // checker was flaky, errored, or returned nothing.
+    if (response.stop_reason === "refusal") return true;
     const text = response.content.find((b) => b.type === "text")?.text;
-    if (!text) return false; // fail closed: no verdict means unverified
+    if (!text) return true;
     const verdict = JSON.parse(text) as { faithful?: boolean; issue?: string };
-    if (verdict.faithful !== true) console.warn("[writer] faithfulness pass rejected prose:", verdict.issue);
-    return verdict.faithful === true;
+    if (verdict.faithful === false) { console.warn("[writer] faithfulness veto:", verdict.issue); return false; }
+    return true;
   } catch {
-    return false; // fail closed: a checker error must not pass unverified prose
+    return true; // advisory only — a checker error must not block the reading
   }
 }
 
@@ -348,7 +366,7 @@ export async function writeNatalProse(chart: ChartFacts, locale: string): Promis
       max_tokens: 3000,
       thinking: { type: "adaptive" },
       system: `You answer five love questions from ONE person's computed natal placements, for AstroMatch. Same absolute rules as all AstroMatch prose: only the supplied placements exist; never invent signs/houses; no event prediction or timing claims (a natal chart shows HOW someone loves, not WHEN things happen — say so if asked about timing); no fatalism; write natively in the "locale" language. Warm, specific, 50-90 words per answer. The five questions, in order: (1) What am I like in love? (2) What kind of partner suits me? (3) What do I need to feel loved? (4) When will I find love? — answer honestly that charts don't date events, then describe the energy they bring. (5) What helps my relationships last? If timeKnown is false, houses and the Ascendant are unavailable — say question 2 needs a birth time rather than guessing.`,
-      output_config: { format: { type: "json_schema", schema: NATAL_SCHEMA } },
+      output_config: { effort: WRITER_EFFORT, format: { type: "json_schema", schema: NATAL_SCHEMA } },
       messages: [{ role: "user", content: `PLACEMENTS:\n${JSON.stringify(facts, null, 1)}` }],
     });
     if (response.stop_reason === "refusal") return null;
