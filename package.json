@@ -8,18 +8,23 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "validate:engine": "tsx scripts/validate-engine.ts"
+    "validate:engine": "tsx scripts/validate-engine.ts",
+    "test:golden": "tsx scripts/golden-charts.ts",
+    "test": "npm run validate:engine && npm run test:golden"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "astronomy-engine": "^2.1.19",
     "luxon": "^3.5.0",
     "next": "^14.2.35",
+    "pg": "^8.22.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@types/luxon": "^3.4.2",
     "@types/node": "^20.16.0",
+    "@types/pg": "^8.20.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",

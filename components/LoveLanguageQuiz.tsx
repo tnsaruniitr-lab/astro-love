@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
-import { useT } from "./LocaleProvider";
+import { useT, useLocale } from "./LocaleProvider";
+import { useReading } from "@/lib/useReading";
 import TopNav from "./TopNav";
 import LoveLangIcon from "./LoveLangIcon";
 import PaywallGate from "./Paywall";
-import { useUnlocked } from "@/lib/entitlement";
 import { fill } from "@/lib/i18n";
 import { QUESTIONS, scoreLoveLanguage, compatList, RESEARCH_NOTE, type Mode, type Level, type LoveLanguageResult } from "@/lib/loveLanguage";
 
@@ -98,7 +98,13 @@ export default function LoveLanguageQuiz() {
 function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: () => void }) {
   const { palette: pal } = useTheme();
   const t = useT();
-  const unlocked = useUnlocked();
+  const { locale } = useLocale();
+  // The love-language flow has no birth chart, so entitlement is confirmed via
+  // the chart-less "love" mode — the deeper content renders only after the
+  // server validates the signed token, not on a local flag.
+  const loveReq = useMemo(() => ({ mode: "love" as const, locale }), [locale]);
+  const { gate } = useReading(loveReq);
+  const unlocked = gate === "open";
   const { primary, secondary, ranking } = result;
 
   const levelStyle = (level: Level): React.CSSProperties => {
@@ -190,7 +196,7 @@ function Result({ result, onRetake }: { result: LoveLanguageResult; onRetake: ()
 
       {unlocked
         ? deeper
-        : <PaywallGate blurb={t.pay.love} next="/love-language" peek={deeper} />}
+        : <PaywallGate blurb={t.pay.love} next="/love-language" />}
 
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button onClick={onRetake} className="text-xs uppercase tracking-[0.18em] text-gold/80 hover:text-gold underline underline-offset-4">{t.ll.retake}</button>
