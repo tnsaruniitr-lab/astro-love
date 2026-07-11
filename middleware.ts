@@ -9,6 +9,7 @@ import type { NextRequest } from "next/server";
 
 const WINDOW_MS = 60_000;
 const LIMITS: Record<string, number> = {
+  "/api/place": 60, // cheap deterministic city scoring
   "/api/reading": 30, // LLM calls — the most expensive
   "/api/og": 120, // crawlers hit this; keep generous
   "/api/share": 60,
@@ -51,5 +52,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/reading/:path*", "/api/og/:path*", "/api/share/:path*", "/api/pay/verify/:path*"],
+  matcher: ["/api/reading/:path*", "/api/place/:path*", "/api/og/:path*", "/api/share/:path*", "/api/pay/verify/:path*"],
 };

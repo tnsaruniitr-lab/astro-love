@@ -15,6 +15,7 @@ import { coupleScoreRange, type ScoreRange } from "@/lib/astro/uncertainty";
 import { contactFacts, enrichSections } from "@/lib/astro/enrich";
 import { useReading } from "@/lib/useReading";
 import type { CoupleProse } from "@/lib/server/writer";
+import type { CompositeChart } from "@/lib/astro/composite";
 import {
   archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
   tendToList, flowGrowStory,
@@ -277,7 +278,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(inputs), locale],
   );
-  const { gate, prose, proseLoading } = useReading(readingReq);
+  const { gate, prose, proseLoading, composite } = useReading(readingReq);
   const unlocked = gate === "open";
 
   const h = t.compat.hints;
@@ -286,6 +287,9 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     { key: "type", hint: h.type, node: <ArchetypeCard reading={archReading} /> },
     ...(unlocked && (prose || proseLoading)
       ? [{ key: "prose", hint: t.reading.proseTitle, node: <ProseCard prose={prose as CoupleProse | null} loading={proseLoading} /> }]
+      : []),
+    ...(unlocked && composite?.available
+      ? [{ key: "composite", hint: "Your relationship chart", node: <CompositeCard composite={composite} names={syn.names} /> }]
       : []),
     ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} names={syn.names} /> }] : []),
     { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
@@ -467,6 +471,56 @@ function ProseCard({ prose, loading }: { prose: CoupleProse | null; loading: boo
               <p className="text-[15px] text-cream/90 leading-relaxed mt-1.5 whitespace-pre-line">{s.body}</p>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The composite chart — the relationship's OWN chart (midpoints of both people),
+// not his-vs-hers. Its Sun/Moon/Venus describe the bond as a third thing, plus
+// its tightest internal aspect. Fully deterministic (no API key needed).
+function CompositeCard({ composite, names }: { composite: CompositeChart; names: { a: string; b: string } }) {
+  const { palette: pal } = useTheme();
+  const ELEMENT_COLOR: Record<string, string> = {
+    fire: pal.aspect.tension, earth: pal.sub.commitment, air: pal.aspect.harmonious, water: pal.personB,
+  };
+  const Placement = ({ glyph, role, p }: { glyph: string; role: string; p: CompositeChart["core"] }) =>
+    p ? (
+      <div className="rounded-2xl border border-cream/10 bg-cream/[0.03] p-4 text-center">
+        <div className="text-2xl" style={{ fontFamily: GLYPH_FONT, color: ELEMENT_COLOR[p.element] ?? pal.aspect.blending }}>{glyph}</div>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-haze/80 mt-1">{role}</div>
+        <div className="font-display text-lg text-cream mt-0.5">{p.sign}</div>
+        <div className="text-[10px] uppercase tracking-wider text-haze/55">{p.element}</div>
+      </div>
+    ) : null;
+  return (
+    <div className="glass p-6 sm:p-8 stagger">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">Your relationship chart</div>
+      <h3 className="font-display text-2xl text-cream text-center mt-1 mb-1">The two of you as one chart</h3>
+      <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
+        Not {names.a}&apos;s chart or {names.b}&apos;s — the <span className="text-cream/90">composite</span>: a single chart built from the midpoint of your two, describing the bond itself as a third being.
+      </p>
+      <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto">
+        <Placement glyph="☉" role="Its purpose" p={composite.core} />
+        <Placement glyph="☾" role="Its heart" p={composite.heart} />
+        <Placement glyph="♀" role="How it loves" p={composite.love} />
+      </div>
+      {composite.summary && (
+        <p className="text-[14px] text-cream/90 leading-relaxed text-center max-w-lg mx-auto mt-5">{composite.summary}</p>
+      )}
+      {composite.strongest && (
+        <div className="mt-5 max-w-xl mx-auto rounded-2xl border border-gold/15 bg-gold/[0.04] px-5 py-4">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-gold/80 text-center">{composite.strongest.headline}</div>
+          <div className="mt-3 space-y-2.5">
+            {composite.strongest.sections.map((s, i) => (
+              <div key={i}>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-goldbright/90">{s.kicker}</div>
+                <p className="text-[13.5px] text-cream/90 leading-snug mt-0.5">{s.body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-haze/55 tabular-nums text-center mt-3">{composite.strongest.proof}</p>
         </div>
       )}
     </div>

@@ -81,6 +81,11 @@ export async function GET(req: Request) {
         currency: data.currency != null ? String(data.currency) : null,
         paymentId: data.payment_id != null ? String(data.payment_id) : null,
         orderId: data.order_id != null ? String(data.order_id) : null,
+        // Buyer identity — only present when CARECOMPASS_VERIFY_TOKEN is set on
+        // both sides (the upstream returns it to authenticated callers only).
+        email: data.email != null ? String(data.email) : null,
+        contact: data.contact != null ? String(data.contact) : null,
+        name: data.name != null ? String(data.name) : null,
       });
     }
 

@@ -19,6 +19,9 @@ import { computeChart } from "../lib/astro/chart";
 import { computeSynastry, type SynAspect } from "../lib/astro/synastry";
 import { contactFacts, dignityOf } from "../lib/astro/enrich";
 import { wherePlaces, _lineLongitude } from "../lib/astro/astrocartography";
+import { transitTiming } from "../lib/astro/transits";
+import { computeComposite } from "../lib/astro/composite";
+import { SIGNS } from "../lib/astro/zodiac";
 import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
 import { coupleScoreRange } from "../lib/astro/uncertainty";
@@ -232,6 +235,43 @@ console.log("── Astrocartography ──");
   ok(typeof lonMC === "number" && lonMC >= -180 && lonMC <= 180, "MC line longitude in range", `${lonMC?.toFixed(1)}`);
   // Unknown birth time → no relocation map (honest).
   ok(wherePlaces({ ...PEOPLE[1], timeKnown: false }).available === false, "unknown birth time disables the relocation map");
+}
+
+// Transit timing — deterministic given a fixed `from`, and windows are well-formed.
+console.log("── Transit timing ──");
+{
+  const from = new Date("2026-01-01T00:00:00Z");
+  const tt1 = transitTiming(FIX[1], from, 365);
+  const tt2 = transitTiming(FIX[1], from, 365);
+  ok(JSON.stringify(tt1) === JSON.stringify(tt2), "transit timing is deterministic for a fixed from-date");
+  ok(tt1.windows.length <= 8, "transit windows cap at 8", `${tt1.windows.length}`);
+  ok(tt1.windows.every((w) => w.start <= w.peak && w.peak <= w.end), "each window's start ≤ peak ≤ end");
+  ok(tt1.windows.every((w) => ["love", "growth", "drive", "spotlight"].includes(w.theme)), "every window has a known theme");
+  ok(tt1.windows.every((w) => w.start >= "2026-01-01" && w.start <= "2027-01-01"), "windows fall inside the scanned year");
+  const sorted = tt1.windows.every((w, i) => i === 0 || tt1.windows[i - 1].start <= w.start);
+  ok(sorted, "windows are sorted by start date");
+  // Unknown-time chart still yields timing (transits to planets don't need the Ascendant).
+  ok(transitTiming(computeChart({ ...PEOPLE[1], timeKnown: false }), from, 90).available !== undefined, "timing computes for an unknown-time chart");
+}
+
+// Composite chart — midpoints are correct and the chart is well-formed.
+console.log("── Composite chart ──");
+{
+  const comp = computeComposite(FIX[0], FIX[1]);
+  ok(comp.available === true, "composite available for two full charts");
+  // Verify the composite Sun is the shortest-arc midpoint of the two natal Suns.
+  const sunA = FIX[0].planets.find((p) => p.body === "Sun")!.lon;
+  const sunB = FIX[1].planets.find((p) => p.body === "Sun")!.lon;
+  const arc = ((sunB - sunA + 540) % 360) - 180;
+  const expectMid = ((sunA + arc / 2) % 360 + 360) % 360;
+  // Recover the composite Sun longitude from its sign + degree.
+  const coreSignIdx = SIGNS.findIndex((s) => s.en === comp.core!.sign);
+  const compSunLon = coreSignIdx * 30 + comp.core!.degInSign;
+  ok(Math.abs(((compSunLon - expectMid + 540) % 360) - 180) <= 1.0, "composite Sun is the midpoint of the two natal Suns", `${compSunLon.toFixed(1)} vs ${expectMid.toFixed(1)}`);
+  ok(comp.summary.length > 0, "composite has a deterministic summary");
+  ok(comp.strongest !== null && comp.strongest.proof.length > 0, "composite exposes its tightest internal aspect");
+  // Commutativity of the bond: A+B and B+A place the same composite Sun sign.
+  ok(computeComposite(FIX[1], FIX[0]).core?.sign === comp.core?.sign, "composite is order-independent (A+B == B+A)");
 }
 
 // Pair-aware conjunction valence.

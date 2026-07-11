@@ -182,6 +182,65 @@ export function wherePlaces(input: ChartInput): WherePlaces {
   return { available: true, themes, caution };
 }
 
+// ── score one arbitrary location ("is my city good for me?") ──
+export interface LocationHit {
+  planet: string; angle: string; angleAbbr: string; orbDeg: number;
+  tone: "great" | "good" | "mixed" | "caution"; reason: string;
+}
+export interface LocationScore {
+  available: boolean; note?: string; lat: number; lon: number;
+  verdict: string; hits: LocationHit[];
+}
+
+const GREAT = new Set<string>(["Venus", "Jupiter"]);
+const GOOD = new Set<string>(["Sun", "Moon", "Mercury"]);
+const LOOKUP_ORB = 8; // slightly wider than the recommendation orb — "notable" here
+
+const PLANET_AT = (planet: PlanetName, angle: Angle): string => {
+  const en = bodyMeta(planet as never)?.en ?? planet;
+  const A: Record<Angle, string> = {
+    rising: `${en} rising — it shapes how you show up here`,
+    culminating: `${en} on the Midheaven — it shapes your work and public life here`,
+    setting: `${en} setting — it flows into your relationships here`,
+    nadir: `${en} at the nadir — it works on home and roots here`,
+  };
+  return A[angle];
+};
+
+export function scoreLocation(input: ChartInput, lat: number, lon: number): LocationScore {
+  if (!input.timeKnown) {
+    return { available: false, lat, lon, verdict: "", hits: [], note: "Scoring a place needs your exact birth time." };
+  }
+  const inst = resolveInstant(input);
+  if (!inst.zoneValid) return { available: false, lat, lon, verdict: "", hits: [], note: "Birth time zone could not be resolved." };
+  const gast = gastDeg(inst.utc);
+  const lines = planetLines(inst.utc);
+
+  const hits: LocationHit[] = [];
+  for (const l of lines) {
+    const b = bestAngle(l, gast, lat, lon);
+    if (b.orb > LOOKUP_ORB) continue;
+    const caution = CAUTION_PLANETS.includes(l.planet) && !GREAT.has(l.planet) && !GOOD.has(l.planet);
+    const tone: LocationHit["tone"] = caution ? "caution" : GREAT.has(l.planet) ? "great" : GOOD.has(l.planet) ? "good" : "mixed";
+    hits.push({
+      planet: l.planet, angle: b.angle, angleAbbr: ANGLE_ABBR[b.angle], orbDeg: Math.round(b.orb * 10) / 10, tone,
+      reason: caution ? (CAUTION_MEANING[l.planet] ?? `${l.planet} is angular here.`) : `Your ${PLANET_AT(l.planet, b.angle)}.`,
+    });
+  }
+  hits.sort((a, b) => a.orbDeg - b.orbDeg);
+  const top = hits.slice(0, 5);
+  const good = top.filter((h) => h.tone === "great" || h.tone === "good").length;
+  const bad = top.filter((h) => h.tone === "caution").length;
+  const verdict = top.length === 0
+    ? "A neutral place for you — no strong planetary lines run close by, so it neither lifts nor drains any one theme."
+    : good > bad
+      ? "A supportive place for you — beneficial lines run close here."
+      : bad > good
+        ? "An intense place for you — heavier lines dominate, so it asks more than it gives."
+        : "A mixed place for you — real lift and real challenge both run close.";
+  return { available: true, lat, lon, verdict, hits: top };
+}
+
 // Exposed for tests: the raw line longitude for a planet/angle at a latitude.
 export function _lineLongitude(planet: PlanetName, date: Date, angle: Angle, lat: number): number | null {
   const { ra, dec } = equatorialOfDate(planet, date);

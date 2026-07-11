@@ -5,7 +5,9 @@ import { loveQuestions } from "@/lib/astro/natalReading";
 import { verifyEntitlement } from "@/lib/server/entitlement";
 import { proseCacheGet, proseCacheKey, proseCacheSet } from "@/lib/server/prosecache";
 import { loadProse, recordReading } from "@/lib/server/db";
-import { wherePlaces } from "@/lib/astro/astrocartography";
+import { wherePlaces, scoreLocation } from "@/lib/astro/astrocartography";
+import { transitTiming } from "@/lib/astro/transits";
+import { computeComposite } from "@/lib/astro/composite";
 import { proseAvailable, writeCoupleProse, writeNatalProse, type CoupleProse, type NatalProse } from "@/lib/server/writer";
 import type { ChartInput } from "@/lib/astro/types";
 
@@ -86,11 +88,16 @@ export async function POST(req: Request) {
 
   try {
     if (mode === "natal") {
-      const chart = computeChart(body.a as ChartInput);
+      const inA = body.a as ChartInput;
+      const chart = computeChart(inA);
       // Serve the deterministic love answers from the SERVER (not the browser)
       // so the premium payload only exists after entitlement is confirmed.
       const natalAnswers = loveQuestions(chart);
-      const places = wherePlaces(body.a as ChartInput);
+      const places = wherePlaces(inA);
+      // Timing depends on the current sky, so compute fresh (not cached).
+      const transits = transitTiming(chart, new Date());
+      // How the person's own birthplace scores on their lines.
+      const homeScore = inA.place ? scoreLocation(inA, inA.lat, inA.lon) : null;
       let prose: NatalProse | null = null;
       if (wantProse) {
         // Cost guard: memory cache → durable DB cache → generate once.
@@ -112,13 +119,15 @@ export async function POST(req: Request) {
           purchaseRef,
         });
       }
-      return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), natalAnswers, places, prose });
+      return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), natalAnswers, places, transits, homeScore, prose });
     }
-    if (!wantProse) {
-      return NextResponse.json({ entitled: true, proseAvailable: proseAvailable() });
-    }
+    // ── couple ──
     const chartA = computeChart(body.a as ChartInput);
     const chartB = computeChart(body.b as ChartInput);
+    const composite = computeComposite(chartA, chartB);
+    if (!wantProse) {
+      return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), composite });
+    }
     const syn = computeSynastry(
       chartA,
       chartB,
@@ -141,7 +150,7 @@ export async function POST(req: Request) {
       proseModel: prose?.model ?? null,
       purchaseRef,
     });
-    return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), prose });
+    return NextResponse.json({ entitled: true, proseAvailable: proseAvailable(), composite, prose });
   } catch (err) {
     console.error("[reading] compute/prose error:", err instanceof Error ? err.message : err);
     // Entitlement stands; prose just isn't available — client keeps templates.

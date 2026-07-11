@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import BirthForm, { type BirthFormValues } from "./BirthForm";
 import ChartWheel from "./ChartWheel";
@@ -11,10 +11,14 @@ import PaywallGate from "./Paywall";
 import { useTheme } from "./ThemeProvider";
 import { useLocale, useT } from "./LocaleProvider";
 import { useReading } from "@/lib/useReading";
+import { readEntitlement } from "@/lib/entitlement";
+import CityAutocomplete from "./CityAutocomplete";
+import type { BirthPlace } from "@/lib/geo/geocode";
 import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import type { ChartFacts, ChartInput } from "@/lib/astro/types";
-import type { WherePlaces } from "@/lib/astro/astrocartography";
+import type { WherePlaces, LocationScore } from "@/lib/astro/astrocartography";
+import type { TransitTiming } from "@/lib/astro/transits";
 
 function chartFromForm(v: BirthFormValues): ChartFacts | null {
   const p = v.place;
@@ -63,7 +67,7 @@ export default function Experience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chartInput ? JSON.stringify(chartInput) : null, locale],
   );
-  const { gate, natalAnswers, places } = useReading(readingReq);
+  const { gate, natalAnswers, places, transits, homeScore } = useReading(readingReq);
   const unlocked = gate === "open";
 
   // Restore the last chart the visitor built (e.g. after returning from
@@ -118,7 +122,8 @@ export default function Experience({
               {unlocked
                 ? (natalAnswers ? <LoveQuestions items={natalAnswers} /> : <AnswersLoading />)
                 : <PaywallGate blurb={t.pay.natal} next="/natal" />}
-              {unlocked && places && <WherePlacesCard places={places} />}
+              {unlocked && transits && <TransitCard transits={transits} />}
+              {unlocked && places && <WherePlacesCard places={places} homeScore={homeScore} chartInput={chartInput} />}
             </>
           ) : (
             <NatalEmpty />
@@ -143,9 +148,97 @@ function NatalEmpty() {
   );
 }
 
+// Timing: your best supportive windows over the next year (transits to natal).
+function TransitCard({ transits }: { transits: TransitTiming }) {
+  const THEME_ICON: Record<string, string> = { love: "♀", growth: "♃", drive: "♂", spotlight: "☉" };
+  const fmtRange = (s: string, e: string) => {
+    const d = (x: string) => new Date(x + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    return s === e ? d(s) : `${d(s)} – ${d(e)}`;
+  };
+  return (
+    <div className="glass p-6 sm:p-7">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">Your year ahead</div>
+      <h3 className="font-display text-2xl text-cream text-center mt-1 mb-1">Timing windows</h3>
+      <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
+        When a moving planet forms a supportive angle to your birth chart, that part of life gets a lift. These dates come from the real sky over the next year.
+      </p>
+      {!transits.available ? (
+        <p className="text-sm text-haze/85 text-center">{transits.note}</p>
+      ) : (
+        <ul className="space-y-2.5">
+          {transits.windows.map((w, i) => (
+            <li key={i} className="flex items-start gap-3 rounded-xl border border-cream/10 bg-cream/[0.03] px-4 py-3">
+              <span className="text-gold text-lg shrink-0 mt-0.5" style={{ fontFamily: '"Segoe UI Symbol","Apple Symbols",serif' }}>{THEME_ICON[w.theme] ?? "✦"}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-cream/90 text-[14px]">{w.label}</span>
+                  <span className="text-[11px] tabular-nums text-goldbright shrink-0">{fmtRange(w.start, w.end)}</span>
+                </div>
+                <p className="text-[12px] text-haze/85 leading-snug mt-0.5">{w.headline} — {w.blurb}.</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+const TONE_COLOR: Record<string, string> = { great: "rgb(var(--c-goldbright))", good: "rgb(var(--c-teal))", mixed: "rgb(var(--c-haze))", caution: "rgb(var(--c-rose))" };
+
+// Type any city and score it against your natal lines (interactive lookup).
+function CityScorer({ chartInput }: { chartInput: ChartInput | null }) {
+  const [place, setPlace] = useState<BirthPlace | null>(null);
+  const [score, setScore] = useState<LocationScore | null>(null);
+  const [loading, setLoading] = useState(false);
+  // Sequence guard: a slow response for an earlier city must not overwrite a
+  // newer one the user just picked.
+  const seqRef = useRef(0);
+  async function run(p: BirthPlace | null) {
+    const myseq = ++seqRef.current;
+    setPlace(p); setScore(null);
+    if (!p || !chartInput) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/place/", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ a: chartInput, lat: p.lat, lon: p.lon, entitlement: readEntitlement() ?? undefined }),
+      });
+      const d = await res.json();
+      if (myseq !== seqRef.current) return; // a newer lookup superseded this one
+      setScore(d?.score ?? null);
+    } catch { /* ignore */ } finally {
+      if (myseq === seqRef.current) setLoading(false);
+    }
+  }
+  return (
+    <div className="mt-4 rounded-2xl border border-gold/15 bg-gold/[0.04] p-4">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-gold/90 mb-2">Score any city</div>
+      <CityAutocomplete value={place} onChange={run} placeholder="Try a city you're curious about" />
+      {loading && <p className="text-xs text-haze/70 mt-2">Reading the lines…</p>}
+      {score && score.available && (
+        <div className="mt-3">
+          <p className="text-[14px] text-cream/90 leading-snug">{score.verdict}</p>
+          {score.hits.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {score.hits.map((h, i) => (
+                <li key={i} className="text-[12px] leading-snug">
+                  <span className="tabular-nums" style={{ color: TONE_COLOR[h.tone] }}>{h.planet} {h.angleAbbr} · {h.orbDeg}°</span>
+                  <span className="text-haze/85"> — {h.reason}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {score && !score.available && <p className="text-xs text-haze/80 mt-2">{score.note}</p>}
+    </div>
+  );
+}
+
 // "Where in the world you should live" — deterministic astrocartography: your
-// planetary lines scored against ~180 cities, grouped by life theme.
-function WherePlacesCard({ places }: { places: WherePlaces }) {
+// planetary lines scored against ~110 cities, grouped by life theme.
+function WherePlacesCard({ places, homeScore, chartInput }: { places: WherePlaces; homeScore: LocationScore | null; chartInput: ChartInput | null }) {
   const THEME_ICON: Record<string, string> = { love: "♀", growth: "♃", vitality: "☉", belonging: "☾", career: "✦" };
   if (!places.available) {
     return (
@@ -162,6 +255,12 @@ function WherePlacesCard({ places }: { places: WherePlaces }) {
       <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
         Each planet runs an invisible line across the globe where it grows strong. Live on it and that part of life amplifies. These come from your exact birth chart, the same astronomy behind the wheel.
       </p>
+      {homeScore && homeScore.available && (
+        <div className="mb-5 rounded-2xl border border-cream/10 bg-cream/[0.03] p-4">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-gold/90 mb-1">Where you were born</div>
+          <p className="text-[14px] text-cream/90 leading-snug">{homeScore.verdict}</p>
+        </div>
+      )}
       <div className="space-y-4">
         {places.themes.map((th) => (
           <div key={th.key} className="rounded-2xl border border-cream/10 bg-cream/[0.03] p-4">
@@ -193,6 +292,7 @@ function WherePlacesCard({ places }: { places: WherePlaces }) {
           </ul>
         </div>
       )}
+      <CityScorer chartInput={chartInput} />
       <p className="text-[10px] text-haze/50 text-center mt-4 leading-relaxed">Relocation astrology suggests emphasis, not destiny. Visiting counts too.</p>
     </div>
   );

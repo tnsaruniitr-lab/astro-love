@@ -13,7 +13,9 @@ import { useEffect, useRef, useState } from "react";
 import { readEntitlement, refreshEntitlementToken, useEntitlement } from "./entitlement";
 import type { ChartInput } from "./astro/types";
 import type { LoveAnswer } from "./astro/natalReading";
-import type { WherePlaces } from "./astro/astrocartography";
+import type { WherePlaces, LocationScore } from "./astro/astrocartography";
+import type { TransitTiming } from "./astro/transits";
+import type { CompositeChart } from "./astro/composite";
 import type { CoupleProse, NatalProse } from "./server/writer";
 
 export type GateState = "locked" | "checking" | "open";
@@ -31,6 +33,9 @@ interface ReadingResponse {
   prose?: CoupleProse | NatalProse | null;
   natalAnswers?: LoveAnswer[] | null;
   places?: WherePlaces | null;
+  transits?: TransitTiming | null;
+  homeScore?: LocationScore | null;
+  composite?: CompositeChart | null;
 }
 
 const PROSE_TIMEOUT_MS = 118_000; // just under the route's maxDuration
@@ -76,6 +81,9 @@ export interface ReadingResult {
   proseLoading: boolean;
   natalAnswers: LoveAnswer[] | null;
   places: WherePlaces | null;
+  transits: TransitTiming | null;
+  homeScore: LocationScore | null;
+  composite: CompositeChart | null;
 }
 
 /** Server-confirmed gate + prose for the current reading. `req` must be
@@ -90,6 +98,9 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
   const [proseLoading, setProseLoading] = useState(false);
   const [natalAnswers, setNatalAnswers] = useState<LoveAnswer[] | null>(null);
   const [places, setPlaces] = useState<WherePlaces | null>(null);
+  const [transits, setTransits] = useState<TransitTiming | null>(null);
+  const [homeScore, setHomeScore] = useState<LocationScore | null>(null);
+  const [composite, setComposite] = useState<CompositeChart | null>(null);
   const runRef = useRef(0);
 
   const reqKey = req ? JSON.stringify([req.mode, req.a ?? null, req.b ?? null, req.locale]) : null;
@@ -99,6 +110,9 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
     setProse(null);
     setNatalAnswers(null);
     setPlaces(null);
+    setTransits(null);
+    setHomeScore(null);
+    setComposite(null);
     if (!req || !ent) {
       setGate("locked");
       setProseLoading(false);
@@ -121,6 +135,9 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
       setGate("open");
       if (d.natalAnswers) setNatalAnswers(d.natalAnswers);
       if (d.places) setPlaces(d.places);
+      if (d.transits) setTransits(d.transits);
+      if (d.homeScore) setHomeScore(d.homeScore);
+      if (d.composite) setComposite(d.composite);
 
       // 2. Fetch the AI reading in the background (may take a while; the
       //    deterministic cards are already open). The chart-less "love" mode
@@ -133,11 +150,12 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
         if (withProse?.entitled) {
           if (withProse.prose) setProse(withProse.prose);
           if (withProse.natalAnswers) setNatalAnswers(withProse.natalAnswers);
+          if (withProse.composite) setComposite(withProse.composite);
         }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reqKey, ent?.token]);
 
-  return { gate, prose, proseLoading, natalAnswers, places };
+  return { gate, prose, proseLoading, natalAnswers, places, transits, homeScore, composite };
 }

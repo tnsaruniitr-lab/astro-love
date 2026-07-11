@@ -44,10 +44,17 @@ CREATE TABLE IF NOT EXISTS purchases (
   currency       text,
   payment_id     text,
   order_id       text,
+  email          text,
+  contact        text,
+  name           text,
   first_paid_at  timestamptz NOT NULL DEFAULT now(),
   redeem_count   integer NOT NULL DEFAULT 1,
   last_redeemed  timestamptz NOT NULL DEFAULT now()
 );
+-- Additive migration for pre-existing deployments (no-op once present).
+ALTER TABLE purchases ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE purchases ADD COLUMN IF NOT EXISTS contact text;
+ALTER TABLE purchases ADD COLUMN IF NOT EXISTS name text;
 CREATE TABLE IF NOT EXISTS readings (
   id             bigserial PRIMARY KEY,
   kind           text NOT NULL,            -- 'couple' | 'natal'
@@ -95,19 +102,26 @@ export async function recordPurchase(rec: {
   currency?: string | null;
   paymentId?: string | null;
   orderId?: string | null;
+  email?: string | null;
+  contact?: string | null;
+  name?: string | null;
 }): Promise<void> {
   try {
     const p = await ready();
     if (!p) return;
     await p.query(
-      `INSERT INTO purchases (ref, product, amount, currency, payment_id, order_id)
-       VALUES ($1,$2,$3,$4,$5,$6)
+      `INSERT INTO purchases (ref, product, amount, currency, payment_id, order_id, email, contact, name)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        ON CONFLICT (ref) DO UPDATE
          SET redeem_count = purchases.redeem_count + 1,
              last_redeemed = now(),
              payment_id = COALESCE(purchases.payment_id, EXCLUDED.payment_id),
-             order_id = COALESCE(purchases.order_id, EXCLUDED.order_id)`,
-      [rec.ref, rec.product, rec.amount ?? null, rec.currency ?? null, rec.paymentId ?? null, rec.orderId ?? null],
+             order_id = COALESCE(purchases.order_id, EXCLUDED.order_id),
+             email = COALESCE(EXCLUDED.email, purchases.email),
+             contact = COALESCE(EXCLUDED.contact, purchases.contact),
+             name = COALESCE(EXCLUDED.name, purchases.name)`,
+      [rec.ref, rec.product, rec.amount ?? null, rec.currency ?? null, rec.paymentId ?? null, rec.orderId ?? null,
+       rec.email ?? null, rec.contact ?? null, rec.name ?? null],
     );
   } catch (e) {
     console.error("[db] recordPurchase failed:", e instanceof Error ? e.message : e);
