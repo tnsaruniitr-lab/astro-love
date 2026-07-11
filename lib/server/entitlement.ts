@@ -12,11 +12,14 @@
 
 import crypto from "crypto";
 
-if (!process.env.ENTITLEMENT_SECRET && process.env.NODE_ENV === "production") {
-  // Fail fast: an ephemeral secret in production means tokens minted on one
-  // instance (or before a restart) are rejected everywhere else, flapping the
-  // paywall and hammering the upstream verify. A stable shared secret is
-  // required — don't boot into a silently-degraded state.
+// Fail fast at RUNTIME (server start / first request), never during
+// `next build` — the build collects route metadata with NODE_ENV=production but
+// no secrets, and should not require them. An ephemeral secret in production
+// means tokens minted on one instance (or before a restart) are rejected
+// everywhere else, flapping the paywall and hammering the upstream verify, so a
+// stable shared secret is required to actually serve traffic.
+const IS_BUILD = process.env.NEXT_PHASE === "phase-production-build";
+if (!process.env.ENTITLEMENT_SECRET && process.env.NODE_ENV === "production" && !IS_BUILD) {
   throw new Error("ENTITLEMENT_SECRET must be set in production (a stable, shared secret across all instances).");
 }
 

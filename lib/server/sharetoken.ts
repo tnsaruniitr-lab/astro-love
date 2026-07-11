@@ -21,10 +21,12 @@ function key(): Buffer {
 }
 const EPHEMERAL_KEY = crypto.randomBytes(32);
 if (!process.env.SHARE_SECRET && !process.env.ENTITLEMENT_SECRET) {
-  if (process.env.NODE_ENV === "production") {
-    // Fail fast: an ephemeral key means share links minted before a restart /
-    // on another instance fail to decrypt, so every shared reading silently
-    // unfurls as the generic card — killing the acquisition loop.
+  // Fail fast at RUNTIME only, never during `next build` (see entitlement.ts).
+  const IS_BUILD = process.env.NEXT_PHASE === "phase-production-build";
+  if (process.env.NODE_ENV === "production" && !IS_BUILD) {
+    // An ephemeral key means share links minted before a restart / on another
+    // instance fail to decrypt, so every shared reading silently unfurls as the
+    // generic card — killing the acquisition loop.
     throw new Error("SHARE_SECRET (or ENTITLEMENT_SECRET) must be set in production for stable encrypted share links.");
   }
   console.warn("[sharetoken] no SHARE_SECRET/ENTITLEMENT_SECRET (dev) — encrypted share links won't survive a restart.");
