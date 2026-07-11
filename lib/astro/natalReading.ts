@@ -150,7 +150,7 @@ export function loveQuestions(chart: ChartFacts): LoveAnswer[] {
     q: "When will I find love?",
     key: "timing",
     answer: `Your chart shows how you love, not the date. Your Venus in ${vSign} means ${VENUS_LOVE[vSign] ?? "you love in your own way"}, so that is the energy you will bring when you meet someone.`,
-    note: "A birth chart is a fixed snapshot, so it cannot time future events. Dating the future needs transits (the moving sky against your chart), which we plan to add next, and even then it is a window, never a guarantee.",
+    note: "A birth chart is a fixed snapshot, so it cannot time future events on its own. Your dated windows come from transits — the moving sky against your chart — in the Timing windows section below: real dates, honestly framed as windows, never guarantees.",
   });
 
   // 5. Longevity (reframes "will I separate", non-fatalist)

@@ -16,6 +16,24 @@ export interface PlacedBody {
   retrograde: boolean;
 }
 
+/** Non-planet chart points: the TRUE lunar nodes + Mean Lilith. Kept separate
+ *  from `planets` so aspect/synastry loops don't accidentally score node-node
+ *  geometry; node CONTACTS are detected explicitly (see nodeContacts.ts). */
+export type PointName = "NorthNode" | "SouthNode" | "Lilith";
+
+export interface PlacedPoint {
+  id: string;            // "pt.node" | "pt.southnode" | "pt.lilith"
+  point: PointName;
+  glyph: string;         // ☊ ☋ ⚸
+  label: string;         // "North Node" | "South Node" | "Lilith (mean)"
+  lon: number;
+  sign: string;
+  signIndex: number;
+  degInSign: number;
+  house: number | null;
+  retrograde: boolean;
+}
+
 export interface Angle {
   id: string;
   lon: number;
@@ -77,6 +95,8 @@ export interface ChartFacts {
     timeKnown: boolean;
   };
   planets: PlacedBody[];
+  /** True node axis + Mean Lilith (additive in schema 1.2). */
+  points?: PlacedPoint[];
   asc: Angle | null;     // null when time unknown OR the tz was invalid
   mc: Angle | null;
   houseCusps: number[] | null; // 12 cusp longitudes, null when time unknown

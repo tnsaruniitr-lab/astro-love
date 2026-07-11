@@ -16,6 +16,12 @@ import { contactFacts, enrichSections } from "@/lib/astro/enrich";
 import { useReading } from "@/lib/useReading";
 import type { CoupleProse } from "@/lib/server/writer";
 import type { CompositeChart } from "@/lib/astro/composite";
+import { directionalSplit, type DirectionalSplit, type DirectionalSide } from "@/lib/astro/directional";
+import { detectHotCold, type HotCold } from "@/lib/astro/hotcold";
+import { needsProfile, moonMatch, type NeedsProfile, type NeedsPerson, type MoonMatch } from "@/lib/astro/decoders";
+import { nodeContacts, type NodeContacts } from "@/lib/astro/nodeContacts";
+import { coupleTiming, type CoupleTiming } from "@/lib/astro/coupleTiming";
+import type { ManifestItem } from "./Paywall";
 import {
   archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
   tendToList, flowGrowStory,
@@ -71,6 +77,9 @@ export default function CoupleExperience({
   const [loading, setLoading] = useState(false);
   const [loadStage, setLoadStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Shared-link recipients are the highest-intent traffic there is — after
+  // someone else's reading, hand them a one-tap path into their OWN.
+  const [fromShare, setFromShare] = useState(initialResult !== null);
   // 0 = initial/SSR or restored result (show everything). Each Calculate bumps
   // this and remounts <Result> into the staged tap-to-reveal "ritual".
   const [revealKey, setRevealKey] = useState(0);
@@ -112,6 +121,7 @@ export default function CoupleExperience({
 
   async function calculate() {
     setError(null);
+    setFromShare(false);
     // Compute first (instant, in-browser) so a bad input errors immediately —
     // no point playing 3s of theater and then failing.
     let res: CoupleResult;
@@ -147,10 +157,22 @@ export default function CoupleExperience({
   // it's meant to justify.
   function loadSample() {
     setError(null);
+    setFromShare(false);
     setA(SAMPLE_A);
     setB(SAMPLE_B);
     setResult(compute(SAMPLE_A, SAMPLE_B));
     setRevealKey((k) => k + 1);
+  }
+
+  // Shared-link CTA: clear the sender's data and jump to a fresh form.
+  const BLANK_FORM: BirthFormValues = { name: "", place: null, year: 2000, month: 1, day: 1, hour: 12, minute: 0, timeKnown: true };
+  function startYours() {
+    setFromShare(false);
+    setResult(null);
+    setA({ ...BLANK_FORM });
+    setB({ ...BLANK_FORM });
+    try { localStorage.removeItem(COMPAT_KEY); } catch { /* ignore */ }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -186,7 +208,19 @@ export default function CoupleExperience({
       {loading
         ? <CalculatingLoader stage={loadStage} />
         : result
-          ? <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
+          ? (
+            <>
+              <Result key={revealKey} result={result} staged={revealKey > 0} forms={{ a, b }} />
+              {fromShare && (
+                <section className="mt-8 text-center">
+                  <div className="glass inline-flex flex-col items-center gap-3 px-8 py-6">
+                    <p className="text-sm text-cream/90">That was {result.syn.names.a} &amp; {result.syn.names.b}&apos;s reading. Yours is 30 seconds away.</p>
+                    <button onClick={startYours} className="btn-gold px-8 py-2.5">Now run yours ✦</button>
+                  </div>
+                </section>
+              )}
+            </>
+          )
           : <EmptyState onSample={loadSample} />}
 
       <footer className="mt-14 text-center text-xs text-haze/60 space-y-1">
@@ -271,6 +305,20 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   const thread = strongestThread(syn);
   const reads = subscoreRead(syn);
 
+  // The decoder layer — all deterministic, all computed from the two charts
+  // already in memory. Conditional features stay silent when the geometry
+  // doesn't exist (a fake tease would be trust arson with this audience).
+  const decoded = useMemo(() => ({
+    dir: directionalSplit(syn),
+    hc: detectHotCold(syn),
+    mm: moonMatch(a, b),
+    np: needsProfile(a, b, syn.names.a, syn.names.b),
+    nc: nodeContacts(a, b, syn.names.a, syn.names.b),
+    timing: coupleTiming(a, b, syn.names.a, syn.names.b, new Date()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [syn]);
+  const { dir, hc, mm, np, nc, timing } = decoded;
+
   // Premium is confirmed by the SERVER (signed entitlement token), not by a
   // local flag — and the AI-written reading only exists server-side.
   const readingReq = useMemo(
@@ -281,17 +329,55 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   const { gate, prose, proseLoading, composite } = useReading(readingReq);
   const unlocked = gate === "open";
 
+  // Free-tier teases (rendered only while locked): computed, personalized,
+  // honest. The Moon line always exists; the destiny line only when a real
+  // node contact does.
+  const archTeasers: string[] = [];
+  if (!unlocked && mm) {
+    archTeasers.push(
+      mm.aElement === mm.bElement
+        ? `☾ Two ${mm.aElement} Moons — ${syn.names.a}'s in ${mm.aSign}, ${syn.names.b}'s in ${mm.bSign} — read safety in the same language. What that gives you (and where it blinds you) is inside.`
+        : `☾ A ${mm.aSign} Moon and a ${mm.bSign} Moon read safety in different languages. What each of you actually needs — inside.`,
+    );
+  }
+  if (!unlocked && nc.available) {
+    const c = nc.contacts[0];
+    const pn = c.planetOwner === "A" ? syn.names.a : syn.names.b;
+    const nn = c.nodeOwner === "A" ? syn.names.a : syn.names.b;
+    archTeasers.push(
+      `✦ One destiny-line contact detected: ${pn}'s ${c.planet} sits within ${c.orb}° of ${nn}'s ${c.node === "north" ? "North" : "South"} Node. Whether it pulls you forward or back is inside.`,
+    );
+  }
+
   const h = t.compat.hints;
   const cards: { key: string; hint: string; node: React.ReactNode }[] = [
-    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} range={range} /> },
-    { key: "type", hint: h.type, node: <ArchetypeCard reading={archReading} /> },
+    { key: "score", hint: h.score, node: <ScoreCard syn={syn} forms={forms} range={range} charts={{ a, b }} dirTease={unlocked ? null : dir} /> },
+    { key: "type", hint: h.type, node: <ArchetypeCard reading={archReading} teasers={archTeasers} /> },
     ...(unlocked && (prose || proseLoading)
       ? [{ key: "prose", hint: t.reading.proseTitle, node: <ProseCard prose={prose as CoupleProse | null} loading={proseLoading} /> }]
+      : []),
+    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} names={syn.names} /> }] : []),
+    ...(unlocked && np.available
+      ? [{ key: "needs", hint: "What you each need", node: <NeedsCard np={np} /> }]
+      : []),
+    ...(unlocked && mm
+      ? [{ key: "moons", hint: "Your Moon match", node: <MoonMatchCard mm={mm} names={syn.names} /> }]
+      : []),
+    ...(unlocked && hc
+      ? [{ key: "hotcold", hint: "Why it runs hot and cold", node: <HotColdCard hc={hc} /> }]
+      : []),
+    ...(unlocked && dir.available
+      ? [{ key: "direction", hint: "Who feels it more", node: <DirectionalCard dir={dir} names={syn.names} /> }]
+      : []),
+    ...(unlocked && nc.available
+      ? [{ key: "nodes", hint: "Fate or rerun", node: <NodeContactsCard nc={nc} /> }]
+      : []),
+    ...(unlocked && timing.available
+      ? [{ key: "timing", hint: "Your year together", node: <CoupleTimingCard timing={timing} /> }]
       : []),
     ...(unlocked && composite?.available
       ? [{ key: "composite", hint: "Your relationship chart", node: <CompositeCard composite={composite} names={syn.names} /> }]
       : []),
-    ...(thread ? [{ key: "thread", hint: h.thread, node: <ThreadCard thread={thread} names={syn.names} /> }] : []),
     { key: "dims", hint: h.dims, node: <DimensionsCard syn={syn} reads={reads} /> },
     { key: "tend", hint: h.tend, node: <TendCard syn={syn} /> },
     { key: "flowgrow", hint: h.flowgrow, node: <FlowGrowCard syn={syn} /> },
@@ -307,7 +393,47 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
   const gateAt = unlocked ? total : Math.min(FREE, total);
   const locked = !unlocked && total > gateAt;
 
+  // The REAL deck size a buyer receives — counted from the same conditionals
+  // that will build the unlocked deck (the old counter undersold it).
+  const sealedCount = locked
+    ? 1 /* written reading */ + (thread ? 1 : 0) + (np.available ? 1 : 0) + (mm ? 1 : 0) +
+      (hc ? 1 : 0) + (dir.available ? 1 : 0) + (nc.available ? 1 : 0) + (timing.available ? 1 : 0) +
+      1 /* composite */ + 3 /* dims, tend, flowgrow */ + 1 /* wheel */ +
+      (syn.overlays.length > 0 ? 1 : 0) + 1 /* shine */
+    : 0;
+  const displayTotal = locked ? FREE + sealedCount : total;
+
+  // The paywall receipt: every sealed card NAMED, with THEIR placements in the
+  // sub-lines — she decides on named objects, not blur bars. Teases are built
+  // from free-tier facts only (titles + placements), never premium content.
+  const manifest: ManifestItem[] = [];
+  if (locked) {
+    if (thread) manifest.push({ title: "Your strongest thread — decoded in full", sub: `${syn.names.a}'s ${thread.aspect.aBody} ${thread.aspect.aspect} ${syn.names.b}'s ${thread.aspect.bBody}, and what it does to you` });
+    if (hc) manifest.push({ title: "Why it runs hot and cold", sub: `one exact angle explains it — it involves ${hc.heavyOwnerName}'s ${hc.heavyBody}` });
+    if (np.available && np.b) manifest.push({ title: `What ${syn.names.b} needs to feel loved`, sub: `☾ ${np.b.moon.sign} + ♀ ${np.b.venus.sign}, decoded — and ${syn.names.a}'s side too` });
+    if (dir.available) manifest.push({ title: "Which of you carries more of the charge", sub: dir.notablyUneven ? "it isn't even — see which side" : "remarkably even — see why that's rare" });
+    if (mm) manifest.push({ title: "Your Moon match", sub: `☾ ${mm.aSign} × ☾ ${mm.bSign} — how you each read safety` });
+    if (timing.available) manifest.push({ title: "Your year together, dated", sub: timing.nextInDays === 0 ? "a window is open right now" : timing.nextInDays != null ? `the next window opens in ${timing.nextInDays} days` : "your love windows for the next 12 months" });
+    manifest.push({ title: "Your written reading", sub: "composed for you two from your exact charts" });
+    if (nc.available) {
+      const c = nc.contacts[0];
+      const pn = c.planetOwner === "A" ? syn.names.a : syn.names.b;
+      const nn = c.nodeOwner === "A" ? syn.names.a : syn.names.b;
+      manifest.push({ title: "Fate or rerun? A destiny-line contact", sub: `${pn}'s ${c.planet} on ${nn}'s ${c.node === "north" ? "North" : "South"} Node, orb ${c.orb}°` });
+    }
+    manifest.push({ title: "Your relationship's own chart", sub: "the composite — one chart for the bond itself" });
+    manifest.push({ title: "Five dimensions, synastry wheel & more", sub: `all ${syn.aspects.length} contacts between your charts, scored and drawn` });
+  }
+
   const [revealed, setRevealed] = useState(staged ? 0 : total);
+
+  // Non-staged decks (restored/shared readings) start fully revealed — but the
+  // premium cards join the array ASYNC once the gate confirms, which would
+  // leave them ghost-facedown behind a frozen `revealed`. Top it up as the
+  // deck grows. Staged decks keep the tap-to-reveal ritual untouched.
+  useEffect(() => {
+    if (!staged) setRevealed((r) => Math.max(r, total));
+  }, [staged, total]);
   const activeRef = useRef<HTMLButtonElement>(null);
   const cascadingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -348,7 +474,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     <section className="mt-10 space-y-5">
       {staged && (
         <div className="flex items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] text-haze" aria-live="polite">
-          <span><span key={done} className="count-tick">✦ {fill(t.compat.revealedOfTotal, { n: done, total })}</span> {t.compat.revealedWord}</span>
+          <span><span key={done} className="count-tick">✦ {fill(t.compat.revealedOfTotal, { n: done, total: displayTotal })}</span> {t.compat.revealedWord}</span>
           {revealed < gateAt && (
             <button onClick={revealAll} className="text-gold/80 hover:text-gold underline underline-offset-4">
               {t.compat.revealAll}
@@ -366,7 +492,37 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
       </div>
 
       {locked && atGate && (
-        <PaywallGate blurb={t.pay.compat} next={next} />
+        <>
+          {/* "His side" tease — the core decode-him job, named with his real Moon. */}
+          {np.b && (
+            <div className="glass px-5 py-4 flex items-center gap-3.5">
+              <span className="text-2xl text-gold shrink-0" style={{ fontFamily: GLYPH_FONT }} aria-hidden>☾</span>
+              <p className="text-[14px] text-cream/90 leading-snug">
+                What does <span className="text-goldbright">{syn.names.b}</span> need to feel loved?
+                {" "}A Moon in <span className="text-goldbright">{np.b.moon.sign}</span> has a precise answer.
+                <span className="text-gold/85"> ✦ Unlock {syn.names.b}&apos;s side.</span>
+              </p>
+            </div>
+          )}
+          {/* Dated-window countdown — the only honest urgency this brand can use. */}
+          {timing.available && timing.nextInDays != null && (
+            <div className="glass px-5 py-4 text-center border border-gold/25">
+              <p className="text-[14.5px] text-cream leading-snug">
+                <span className="text-gold" aria-hidden>✦ </span>
+                {timing.nextInDays === 0
+                  ? "A shared love window is open for you two right now."
+                  : `Your next shared love window opens in ${timing.nextInDays} ${timing.nextInDays === 1 ? "day" : "days"}.`}
+                {" "}<span className="text-haze/90">The exact dates — and the windows after it — are inside.</span>
+              </p>
+            </div>
+          )}
+          <PaywallGate
+            blurb={t.pay.compat}
+            next={next}
+            manifest={manifest}
+            manifestTitle={`Still sealed for ${syn.names.a} & ${syn.names.b} — ${sealedCount} cards`}
+          />
+        </>
       )}
 
       {unlocked && revealed >= total && syn.warnings.length > 0 && (
@@ -396,7 +552,36 @@ const FacedownCard = forwardRef<HTMLButtonElement, { hint: string; onReveal: () 
 );
 
 // ───────────────────────── individual cards ─────────────────────────
-function ScoreCard({ syn, forms, range }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues }; range: ScoreRange | null }) {
+
+/** Big-three echo: proof-of-computation on the FIRST card. She gave her birth
+ *  minute; the very first thing she reads back must speak her chart's language
+ *  (☉ ☾ ↑ by name) — or the whole "real ephemeris" claim stays invisible. */
+function BigThreeStrip({ a, b, names }: { a: ChartFacts; b: ChartFacts; names: { a: string; b: string } }) {
+  const { palette: pal } = useTheme();
+  const big = (c: ChartFacts) => {
+    const sun = c.planets.find((p) => p.body === "Sun");
+    const moon = c.planets.find((p) => p.body === "Moon");
+    return { sun: sun?.sign, moon: moon?.sign, asc: c.asc?.sign ?? null };
+  };
+  const A = big(a), B = big(b);
+  const Person = ({ name, t3, color }: { name: string; t3: ReturnType<typeof big>; color: string }) => (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span style={{ color }}>{name}</span>
+      <span className="text-haze/90" style={{ fontFamily: GLYPH_FONT }}>☉</span><span className="text-cream/90">{t3.sun}</span>
+      <span className="text-haze/90" style={{ fontFamily: GLYPH_FONT }}>☾</span><span className="text-cream/90">{t3.moon}</span>
+      {t3.asc && (<><span className="text-haze/90">↑</span><span className="text-cream/90">{t3.asc}</span></>)}
+    </span>
+  );
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[12.5px]">
+      <Person name={names.a} t3={A} color={pal.personA} />
+      <span className="text-gold" aria-hidden>✦</span>
+      <Person name={names.b} t3={B} color={pal.personB} />
+    </div>
+  );
+}
+
+function ScoreCard({ syn, forms, range, charts, dirTease }: { syn: SynastryResult; forms: { a: BirthFormValues; b: BirthFormValues }; range: ScoreRange | null; charts: { a: ChartFacts; b: ChartFacts }; dirTease: DirectionalSplit | null }) {
   const { palette: pal } = useTheme();
   const t = useT();
   // Only surface the range when the unknown birth time actually moves the score.
@@ -417,7 +602,16 @@ function ScoreCard({ syn, forms, range }: { syn: SynastryResult; forms: { a: Bir
         )}
         <h2 className="font-display text-3xl text-goldbright mt-3">{syn.band.label}</h2>
         <p className="text-cream/85 max-w-md mx-auto mt-2 text-[15px] leading-relaxed">{scoreMeaning(syn)}</p>
+        <BigThreeStrip a={charts.a} b={charts.b} names={syn.names} />
         <TwoAxes ease={syn.axes.ease} intensity={syn.axes.intensity} />
+        {/* Directional tease — computed, with the honest even branch. Locked only. */}
+        {dirTease?.available && (
+          <p className="text-[12.5px] text-gold/90 leading-snug max-w-md mx-auto mt-3">
+            {dirTease.notablyUneven
+              ? <>This bond isn&apos;t perfectly mutual — the pull runs stronger in one direction. 🔒 Which side, and what each of you feels that the other doesn&apos;t, is inside.</>
+              : <>The charge here lands remarkably evenly — rarer than it sounds. 🔒 What each of you feels most is inside.</>}
+          </p>
+        )}
       </div>
       <ShareRow syn={syn} forms={forms} />
     </div>
@@ -527,7 +721,7 @@ function CompositeCard({ composite, names }: { composite: CompositeChart; names:
   );
 }
 
-function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
+function ArchetypeCard({ reading, teasers = [] }: { reading: ArchetypeReading; teasers?: string[] }) {
   const { palette: pal } = useTheme();
   const t = useT();
   const a = reading.anchor;
@@ -607,11 +801,227 @@ function ArchetypeCard({ reading }: { reading: ArchetypeReading }) {
                 {" "}{cap(a.aspect)}: {ASPECT_MEANING[a.aspect] ?? "a notable angle"}.
               </p>
             )}
-            <p className="text-[10px] text-haze/50 mt-2 tabular-nums">{a.proof}</p>
+            {/* The proof IS the product — display layer, not fine print. */}
+            <p className="text-[12px] text-gold/80 mt-2.5 tabular-nums">{a.proof}</p>
           </div>
           );
         })()}
       </div>
+
+      {/* Conditional, computed teases (locked only): the Moon-language line and,
+          when the geometry exists, the destiny-line detection. */}
+      {teasers.length > 0 && (
+        <div className="mt-5 max-w-xl mx-auto space-y-2 text-left">
+          {teasers.map((tz, i) => (
+            <p key={i} className="text-[13px] text-goldbright/95 leading-snug rounded-xl border border-gold/20 bg-gold/[0.05] px-4 py-3">{tz}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// "What you each need" — the decode-them card. Nobody runs a couple check to
+// learn about herself: this is the other person's manual, receipts attached.
+function NeedsCard({ np }: { np: NeedsProfile }) {
+  const { palette: pal } = useTheme();
+  const Person = ({ p, accent }: { p: NeedsPerson; accent: string }) => (
+    <div className="rounded-2xl border border-cream/10 bg-cream/[0.03] p-4 text-left">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: accent }} />
+        <h4 className="font-display text-lg text-cream">{p.name}</h4>
+      </div>
+      <div className="space-y-3.5">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-haze/85 flex items-center gap-1.5">
+            <span style={{ fontFamily: GLYPH_FONT }} className="text-goldbright text-sm">☾</span>
+            To feel loved <span className="text-gold/70 tabular-nums normal-case tracking-normal">· {p.moon.proof}{p.moon.timeSensitive ? " (time-sensitive)" : ""}</span>
+          </div>
+          <p className="text-[13.5px] text-cream/90 leading-snug mt-1">{p.moon.needs}</p>
+          <p className="text-[12px] text-haze/85 leading-snug mt-1.5"><span className="text-rose/85">The tell:</span> {p.moon.tell}</p>
+          {p.moon.dignity && <p className="text-[11.5px] text-gold/80 leading-snug mt-1">☾ {p.moon.dignity}.</p>}
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-haze/85 flex items-center gap-1.5">
+            <span style={{ fontFamily: GLYPH_FONT }} className="text-goldbright text-sm">♀</span>
+            How they love <span className="text-gold/70 tabular-nums normal-case tracking-normal">· {p.venus.proof}</span>
+          </div>
+          <p className="text-[13.5px] text-cream/90 leading-snug mt-1">{p.venus.gives}</p>
+          <p className="text-[12px] text-haze/85 leading-snug mt-1.5"><span className="text-goldbright/90">Craves:</span> {p.venus.craves}</p>
+          {p.venus.dignity && <p className="text-[11.5px] text-gold/80 leading-snug mt-1">♀ {p.venus.dignity}.</p>}
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-haze/85 flex items-center gap-1.5">
+            <span style={{ fontFamily: GLYPH_FONT }} className="text-goldbright text-sm">♂</span>
+            The spark <span className="text-gold/70 tabular-nums normal-case tracking-normal">· {p.mars.proof}</span>
+          </div>
+          <p className="text-[13.5px] text-cream/90 leading-snug mt-1">{p.mars.spark}</p>
+        </div>
+      </div>
+    </div>
+  );
+  return (
+    <div className="glass p-6 sm:p-8 stagger">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">The decoder</div>
+      <h3 className="font-display text-2xl text-cream text-center mt-1 mb-1">What you each need</h3>
+      <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
+        Not guesses — read from each Moon (what safety means), Venus (how love is given and what it craves back) and Mars (how desire moves). Exact degrees attached.
+      </p>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {np.a && <Person p={np.a} accent={pal.personA} />}
+        {np.b && <Person p={np.b} accent={pal.personB} />}
+      </div>
+    </div>
+  );
+}
+
+// The Moon match — "Sun signs flirt. Moon signs decide who stays."
+function MoonMatchCard({ mm, names }: { mm: MoonMatch; names: { a: string; b: string } }) {
+  const { palette: pal } = useTheme();
+  const vc = mm.valence ? pal.aspect[mm.valence] : pal.aspect.blending;
+  return (
+    <div className="glass p-6 sm:p-8 stagger text-center">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80">Your Moon match</div>
+      <div className="mt-3 flex items-center justify-center gap-3 text-3xl" style={{ fontFamily: GLYPH_FONT }}>
+        <span style={{ color: pal.personA }}>☾</span>
+        <span className="text-cream/60 text-base">{mm.aSign} × {mm.bSign}</span>
+        <span style={{ color: pal.personB }}>☾</span>
+      </div>
+      <p className="text-[11px] text-haze/75 mt-1">Sun signs flirt. Moon signs decide who stays.</p>
+      <div className="mt-5 max-w-xl mx-auto text-left space-y-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-goldbright/90 mb-1">How you each read safety</div>
+          <p className="text-[14px] text-cream/90 leading-relaxed">{mm.elementRead}</p>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.18em] mb-1" style={{ color: vc }}>
+            The angle between your Moons{mm.aspect !== "none" ? ` — ${mm.aspect}` : ""}
+          </div>
+          <p className="text-[14px] text-cream/90 leading-relaxed">{mm.aspectRead}</p>
+        </div>
+      </div>
+      <p className="text-[11.5px] text-gold/75 tabular-nums mt-4">{mm.proof}{mm.timeSensitive ? " · time-sensitive (birth time unknown)" : ""}</p>
+    </div>
+  );
+}
+
+// "Why it runs hot and cold" — the highest-scored feature in the audit: names
+// the exact withholding geometry and what actually reassures.
+function HotColdCard({ hc }: { hc: HotCold }) {
+  const { palette: pal } = useTheme();
+  return (
+    <div className="glass overflow-hidden stagger">
+      <div className="px-6 sm:px-8 pt-6 pb-5 text-center border-b border-cream/10" style={{ background: `linear-gradient(150deg, ${pal.aspect.tension}14, transparent 60%)` }}>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80">Why it runs hot and cold</div>
+        <h3 className="font-display text-2xl text-cream mt-2">{hc.signature}</h3>
+        <p className="text-[13px] text-haze/90 mt-1.5">{hc.headline}</p>
+      </div>
+      <div className="px-6 sm:px-8 py-4 border-b border-cream/[0.06]">
+        <div className="text-[10px] uppercase tracking-[0.18em] mb-1.5" style={{ color: pal.aspect.tension }}>What the pull-back actually is</div>
+        <p className="text-[14.5px] text-cream/90 leading-relaxed">{hc.what}</p>
+      </div>
+      <div className="px-6 sm:px-8 py-4 border-b border-cream/[0.06]">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-goldbright mb-1.5">What actually reassures</div>
+        <p className="text-[14.5px] text-cream/90 leading-relaxed">{hc.reassure}</p>
+      </div>
+      <p className="px-6 sm:px-8 py-3 text-[11.5px] text-gold/75 tabular-nums overflow-x-auto whitespace-nowrap">
+        {hc.proof}{hc.timeSensitive ? " · time-sensitive (birth time unknown)" : ""}
+      </p>
+    </div>
+  );
+}
+
+// "Does he feel it too?" — directional synastry, with the honest even branch.
+function DirectionalCard({ dir, names }: { dir: DirectionalSplit; names: { a: string; b: string } }) {
+  const { palette: pal } = useTheme();
+  const Side = ({ name, side, color }: { name: string; side: DirectionalSide; color: string }) => (
+    <div className="text-left flex-1 min-w-0">
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="text-[11px] uppercase tracking-wider text-haze/90">{name} feels</span>
+        <span className="text-sm tabular-nums" style={{ color }}>{side.share}%</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-cream/10 overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${side.share}%`, background: color, transition: "width 900ms cubic-bezier(0.22,1,0.36,1)" }} />
+      </div>
+      {side.strongest && (
+        <p className="text-[11.5px] text-haze/85 leading-snug mt-2">Feels most: <span className="text-cream/90">{side.strongest.headline}</span></p>
+      )}
+    </div>
+  );
+  return (
+    <div className="glass p-6 sm:p-8 stagger text-center">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80">Who feels it more</div>
+      <h3 className="font-display text-2xl text-cream mt-1 mb-1">Compatibility isn&apos;t symmetric</h3>
+      <p className="text-xs text-haze/80 mb-5 max-w-lg mx-auto leading-relaxed">
+        Every contact lands hardest on whoever&apos;s personal planet is in it. Re-weighing all of yours by who receives them shows which side of this bond carries more of the charge.
+      </p>
+      <div className="flex gap-6 max-w-xl mx-auto">
+        <Side name={names.a} side={dir.a} color={pal.personA} />
+        <Side name={names.b} side={dir.b} color={pal.personB} />
+      </div>
+      <p className="text-[14px] text-cream/90 leading-relaxed max-w-lg mx-auto mt-5">{dir.line}</p>
+    </div>
+  );
+}
+
+// "Fate or rerun?" — node-axis contacts, the destiny conversation with a degree.
+function NodeContactsCard({ nc }: { nc: NodeContacts }) {
+  return (
+    <div className="glass p-6 sm:p-8 stagger">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">Fate or rerun?</div>
+      <h3 className="font-display text-2xl text-cream text-center mt-1 mb-1">Your destiny-line contacts</h3>
+      <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
+        The lunar nodes are your chart&apos;s past-and-future axis. A planet landing on one is the classical &ldquo;why does this feel fated&rdquo; signature — ☊ pulls you forward, ☋ feels instantly familiar. These are TRUE nodes, computed to the arcminute.
+      </p>
+      <div className="space-y-3.5 max-w-xl mx-auto">
+        {nc.contacts.map((c, i) => (
+          <div key={i} className={`rounded-2xl border p-4 ${c.node === "north" ? "border-gold/25 bg-gold/[0.05]" : "border-cream/12 bg-cream/[0.03]"}`}>
+            <div className="flex items-center gap-2">
+              <span className="text-goldbright text-lg" style={{ fontFamily: GLYPH_FONT }} aria-hidden>{c.node === "north" ? "☊" : "☋"}</span>
+              <h4 className="text-[14.5px] text-cream font-medium leading-snug">{c.headline}</h4>
+            </div>
+            <p className="text-[13.5px] text-cream/90 leading-relaxed mt-2">{c.read}</p>
+            <p className="text-[11.5px] text-gold/75 tabular-nums mt-2">{c.proof}{c.timeSensitive ? " · time-sensitive" : ""}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// "Your year together" — the dated shared windows (couple timing).
+function CoupleTimingCard({ timing }: { timing: CoupleTiming }) {
+  const badge = (w: CoupleTiming["windows"][number]) =>
+    w.kind === "shared"
+      ? { label: "both charts", cls: "bg-gold/15 text-goldbright border border-gold/30" }
+      : { label: w.label, cls: "bg-cream/[0.06] text-haze" };
+  const fmtRange = (s: string, e: string) => {
+    const d = (x: string) => new Date(x + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    return s === e ? d(s) : `${d(s)} – ${d(e)}`;
+  };
+  return (
+    <div className="glass p-6 sm:p-7 stagger">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-gold/80 text-center">Your year together</div>
+      <h3 className="font-display text-2xl text-cream text-center mt-1 mb-1">The windows, dated</h3>
+      <p className="text-xs text-haze/80 text-center mb-5 max-w-lg mx-auto leading-relaxed">
+        Real transits over the next twelve months — stretches where the moving sky supports this bond. Windows, never guarantees; plan the good conversations and the trips inside them.
+      </p>
+      {!timing.available ? (
+        <p className="text-sm text-haze/85 text-center">{timing.note}</p>
+      ) : (
+        <ul className="space-y-2.5">
+          {timing.windows.map((w, i) => (
+            <li key={i} className="rounded-xl border border-cream/10 bg-cream/[0.03] px-4 py-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-[11px] tabular-nums text-goldbright">{fmtRange(w.start, w.end)}</span>
+                <span className={`text-[9.5px] uppercase tracking-wider px-2 py-0.5 rounded-full ${badge(w).cls}`}>{badge(w).label}</span>
+              </div>
+              <p className="text-[13.5px] text-cream/90 leading-snug mt-1">{w.headline}</p>
+              <p className="text-[11.5px] text-haze/80 leading-snug mt-0.5">{w.blurb}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

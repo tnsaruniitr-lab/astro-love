@@ -21,6 +21,13 @@ import { contactFacts, dignityOf } from "../lib/astro/enrich";
 import { wherePlaces, _lineLongitude } from "../lib/astro/astrocartography";
 import { transitTiming } from "../lib/astro/transits";
 import { computeComposite } from "../lib/astro/composite";
+import { trueNodeLon, meanNodeLon, meanLilithLon } from "../lib/astro/points";
+import { nodeContacts } from "../lib/astro/nodeContacts";
+import { directionalSplit } from "../lib/astro/directional";
+import { detectHotCold } from "../lib/astro/hotcold";
+import { needsProfile, moonMatch } from "../lib/astro/decoders";
+import { coupleTiming } from "../lib/astro/coupleTiming";
+import { HOTCOLD_REGISTER } from "../lib/astro/loveCopy";
 import { SIGNS } from "../lib/astro/zodiac";
 import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
@@ -272,6 +279,73 @@ console.log("── Composite chart ──");
   ok(comp.strongest !== null && comp.strongest.proof.length > 0, "composite exposes its tightest internal aspect");
   // Commutativity of the bond: A+B and B+A place the same composite Sun sign.
   ok(computeComposite(FIX[1], FIX[0]).core?.sign === comp.core?.sign, "composite is order-independent (A+B == B+A)");
+}
+
+// Lunar points: TRUE node + Mean Lilith.
+console.log("── Lunar points (☊ ☋ ⚸) ──");
+{
+  // Definitional freeze: at a verified northbound ecliptic crossing the true
+  // node must equal the Moon's longitude there (checked <1′ at build time).
+  const crossing = new Date("2000-01-21T09:54:00Z");
+  near(trueNodeLon(crossing), 123.6838, "true node = Moon's northbound crossing longitude (2000-01-21)", 0.05);
+  // Physics band: the true node oscillates within ±1.9° of the mean node.
+  let worst = 0;
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(Date.UTC(1950 + i * 3, (i * 5) % 12, 1 + (i * 7) % 28));
+    worst = Math.max(worst, Math.abs(((trueNodeLon(d) - meanNodeLon(d) + 540) % 360) - 180));
+  }
+  ok(worst < 1.9, "true node stays inside the ±1.9° osculation band", `worst ${worst.toFixed(3)}°`);
+  // Mean Lilith: frozen J2000 value (Meeus perigee + 180) and apsidal rate.
+  near(meanLilithLon(new Date("2000-01-01T12:00:00Z")), 263.353, "mean Lilith at J2000 (23°21′ Sagittarius)", 0.02);
+  const rate = ((meanLilithLon(new Date("2001-01-01T00:00:00Z")) - meanLilithLon(new Date("2000-01-01T00:00:00Z")) + 540) % 360) - 180;
+  ok(Math.abs(rate - 40.7) < 0.4, "Lilith advances ~40.7°/yr (apsidal precession)", `${rate.toFixed(2)}°/yr`);
+  // Chart integration: points present, south node exactly opposite north.
+  const pts = FIX[0].points ?? [];
+  ok(pts.length === 3, "chart carries ☊ ☋ ⚸ points", `${pts.length}`);
+  const n = pts.find((p) => p.point === "NorthNode")!;
+  const s = pts.find((p) => p.point === "SouthNode")!;
+  near((n.lon + 180) % 360, s.lon, "south node exactly opposes north node", 0.001);
+}
+
+// The decoder layer: deterministic, structurally sound, honest when silent.
+console.log("── Decoders (needs, moons, hot-cold, direction, nodes, timing) ──");
+{
+  const syn = computeSynastry(FIX[0], FIX[1], "A", "B");
+  const dir = directionalSplit(syn);
+  ok(dir.available, "directional split available for a real couple");
+  ok(dir.a.share + dir.b.share === 100, "directional shares sum to 100", `${dir.a.share}+${dir.b.share}`);
+  ok(["A", "B", "even"].includes(dir.lean), "directional lean is a valid branch");
+  ok(dir.line.length > 0, "directional line is computed, never empty");
+
+  const hc = detectHotCold(syn);
+  ok(hc === null || (hc.key in HOTCOLD_REGISTER && hc.orb > 0), "hot-cold: silent, or a real register entry with a real orb");
+  const hc2 = detectHotCold(syn);
+  ok(JSON.stringify(hc) === JSON.stringify(hc2), "hot-cold detection is deterministic");
+
+  const mm = moonMatch(FIX[0], FIX[1])!;
+  ok(mm.available && mm.proof.length > 0, "moon match computes with receipts");
+  ok(["conjunction", "sextile", "trine", "square", "opposition", "quincunx", "none"].includes(mm.aspect), "moon-moon aspect is a valid key");
+  ok(mm.elementRead.length > 20 && mm.aspectRead.length > 20, "moon match copy is substantive");
+
+  const np = needsProfile(FIX[0], FIX[1], "A", "B");
+  ok(np.available && !!np.a && !!np.b, "needs profile decodes both people");
+  ok(np.a!.moon.needs.length > 30 && np.b!.venus.craves.length > 20, "needs copy is substantive, not placeholder");
+
+  const nc = nodeContacts(FIX[0], FIX[1], "A", "B");
+  ok(nc.contacts.every((c) => c.orb <= 2.5), "node contacts respect the 2.5° orb");
+  ok(nc.contacts.every((c) => c.read.length > 30 && c.proof.includes("☌")), "node contacts carry reads + receipts");
+
+  const from = new Date("2026-01-01T00:00:00Z");
+  const ct1 = coupleTiming(FIX[0], FIX[1], "A", "B", from);
+  const ct2 = coupleTiming(FIX[0], FIX[1], "A", "B", from);
+  ok(JSON.stringify(ct1) === JSON.stringify(ct2), "couple timing is deterministic for a fixed from-date");
+  ok(ct1.windows.every((w) => w.start <= w.end), "couple windows are well-formed (start ≤ end)");
+  ok(ct1.windows.every((w, i) => i === 0 || ct1.windows[i - 1].start <= w.start), "couple windows sorted by start");
+  ok(ct1.nextInDays === null || ct1.nextInDays >= 0, "countdown is null or non-negative");
+  // Honesty guard: unknown birth time must not produce Moon-target windows.
+  const unkA = computeChart({ ...PEOPLE[0], timeKnown: false });
+  const ctUnk = coupleTiming(unkA, FIX[1], "A", "B", from);
+  ok(ctUnk.windows.every((w) => w.kind !== "a" || !w.headline.includes("your Moon")), "unknown-time chart drops its Moon windows");
 }
 
 // Pair-aware conjunction valence.

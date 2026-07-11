@@ -18,7 +18,8 @@ import { SIGNS, BODIES } from "@/lib/astro/zodiac";
 import { computeChart } from "@/lib/astro/chart";
 import type { ChartFacts, ChartInput } from "@/lib/astro/types";
 import type { WherePlaces, LocationScore } from "@/lib/astro/astrocartography";
-import type { TransitTiming } from "@/lib/astro/transits";
+import { transitTiming, type TransitTiming } from "@/lib/astro/transits";
+import type { ManifestItem } from "./Paywall";
 
 function chartFromForm(v: BirthFormValues): ChartFacts | null {
   const p = v.place;
@@ -34,6 +35,11 @@ function chartFromForm(v: BirthFormValues): ChartFacts | null {
 
 const GLYPH_FONT =
   '"Noto Sans Symbols2","Segoe UI Symbol","Apple Symbols","DejaVu Sans",serif';
+
+const fmtWindowRange = (s: string, e: string) => {
+  const d = (x: string) => new Date(x + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  return s === e ? d(s) : `${d(s)} – ${d(e)}`;
+};
 
 export default function Experience({
   initialChart,
@@ -69,6 +75,34 @@ export default function Experience({
   );
   const { gate, natalAnswers, places, transits, homeScore } = useReading(readingReq);
   const unlocked = gate === "open";
+
+  // Free timing tease: the FIRST love window with real dates, computed in the
+  // browser (the deterministic engine ships to the client anyway; the paid
+  // value is the full year + the interpretations, served post-entitlement).
+  const freeTiming = useMemo(
+    () => (chart && !unlocked ? transitTiming(chart, new Date()) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chart ? chart.subject.utc : null, unlocked],
+  );
+  const freeLoveWindows = freeTiming?.windows.filter((w) => w.theme === "love" && (w.natalPoint !== "Moon" || chart?.subject.timeKnown)) ?? [];
+
+  // The natal paywall receipt — named items with HER placements (free facts only).
+  const natalManifest: ManifestItem[] = [];
+  if (chart && !unlocked) {
+    const venus = chart.planets.find((p) => p.body === "Venus");
+    const moon = chart.planets.find((p) => p.body === "Moon");
+    natalManifest.push({ title: "Your five love questions, answered from your chart", sub: venus && moon ? `read from your ♀ ${SIGNS[venus.signIndex].en} and ☾ ${SIGNS[moon.signIndex].en}, degrees attached` : undefined });
+    natalManifest.push({
+      title: "Your timing windows — dated",
+      sub: freeLoveWindows.length > 1
+        ? `${freeLoveWindows.length - 1} more love windows this year, plus growth, drive and spotlight`
+        : "your supportive windows for the next 12 months, with dates",
+    });
+    if (chart.subject.timeKnown) {
+      natalManifest.push({ title: "Where in the world you should live", sub: "your 110-city relocation map: love, growth, vitality, belonging, career" });
+      natalManifest.push({ title: "Score any city on Earth", sub: "type a city, get a verdict from your planetary lines" });
+    }
+  }
 
   // Restore the last chart the visitor built (e.g. after returning from
   // checkout), so the unlocked love answers are about their chart, not the demo.
@@ -119,9 +153,24 @@ export default function Experience({
           {chart ? (
             <>
               <ResultCard chart={chart} />
+              {/* Free tease: the FIRST love window with REAL dates — "when" is
+                  the category's #1 pay-trigger and it must be visible before
+                  the wall. The rest of the year stays sealed. */}
+              {!unlocked && freeLoveWindows.length > 0 && (
+                <div className="glass px-5 py-4 border border-gold/25">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-gold/85 mb-1">Your next love window</div>
+                  <p className="text-[15px] text-cream leading-snug">
+                    <span className="text-goldbright tabular-nums">{fmtWindowRange(freeLoveWindows[0].start, freeLoveWindows[0].end)}</span>
+                    {" — "}{freeLoveWindows[0].headline.toLowerCase()}. Free, from the real sky.
+                  </p>
+                  <p className="text-[12px] text-haze/85 leading-snug mt-1.5">
+                    🔒 {freeLoveWindows.length > 1 ? `${freeLoveWindows.length - 1} more dated love ${freeLoveWindows.length - 1 === 1 ? "window" : "windows"} this year` : "Your full year of windows"} — plus growth, drive and spotlight — inside.
+                  </p>
+                </div>
+              )}
               {unlocked
                 ? (natalAnswers ? <LoveQuestions items={natalAnswers} /> : <AnswersLoading />)
-                : <PaywallGate blurb={t.pay.natal} next="/natal" />}
+                : <PaywallGate blurb={t.pay.natal} next="/natal" manifest={natalManifest} manifestTitle="Still sealed for you" />}
               {unlocked && transits && <TransitCard transits={transits} />}
               {unlocked && places && <WherePlacesCard places={places} homeScore={homeScore} chartInput={chartInput} />}
             </>

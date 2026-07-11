@@ -33,8 +33,9 @@ const place = (lon: number): CompositePlacement => {
   return { sign: SIGNS[si].en, element: SIGNS[si].element, degInSign: Math.round(degInSign(lon)) };
 };
 
-export function computeComposite(a: ChartFacts, b: ChartFacts): CompositeChart {
-  // Composite planets: midpoint per body present in both charts.
+/** The composite's midpoint planets — also consumed by coupleTiming.ts to
+ *  transit the relationship's own chart. */
+export function compositePlanets(a: ChartFacts, b: ChartFacts): PlacedBody[] {
   const byBodyB = new Map(b.planets.map((p) => [p.body, p]));
   const compPlanets: PlacedBody[] = [];
   for (const pa of a.planets) {
@@ -52,6 +53,12 @@ export function computeComposite(a: ChartFacts, b: ChartFacts): CompositeChart {
       retrograde: false,
     });
   }
+  return compPlanets;
+}
+
+export function computeComposite(a: ChartFacts, b: ChartFacts): CompositeChart {
+  // Composite planets: midpoint per body present in both charts.
+  const compPlanets = compositePlanets(a, b);
   if (compPlanets.length === 0) {
     return { available: false, note: "Not enough shared data to build a composite chart.", core: null, heart: null, love: null, strongest: null, summary: "" };
   }

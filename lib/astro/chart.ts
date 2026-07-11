@@ -12,9 +12,10 @@ import { eclipticOfDateLon, isRetrograde } from "./ephemeris";
 import { siderealAngles, wholeSignCusps, wholeSignHouse } from "./angles";
 import { natalAspects } from "./aspects";
 import { degInSign, signFromLon, signIndexFromLon } from "./zodiac";
+import { trueNodeLon, meanLilithLon, nodeRetrograde } from "./points";
 import { resolveInstant } from "../geo/time";
 import { BODIES } from "./zodiac";
-import type { Angle, ChartFacts, ChartInput, MoonRange, PlacedBody } from "./types";
+import type { Angle, ChartFacts, ChartInput, MoonRange, PlacedBody, PlacedPoint, PointName } from "./types";
 
 const ENGINE = "astronomy-engine@2 + astro-love-layer@0.2 (tropical, whole-sign)";
 
@@ -99,6 +100,25 @@ export function computeChart(input: ChartInput): ChartFacts {
     };
   });
 
+  // TRUE node axis + Mean Lilith. Slow-moving (node ~19.4°/yr, Lilith
+  // ~40.7°/yr) so, unlike the Moon itself, an unknown birth time barely moves
+  // them — they're safe to show whenever the instant is trustworthy.
+  const placePoint = (id: string, point: PointName, glyph: string, label: string, lon: number, retro: boolean): PlacedPoint => ({
+    id, point, glyph, label, lon,
+    sign: signFromLon(lon).key,
+    signIndex: signIndexFromLon(lon),
+    degInSign: degInSign(lon),
+    house: ascLon === null ? null : wholeSignHouse(lon, ascLon),
+    retrograde: retro,
+  });
+  const nodeLon = trueNodeLon(date);
+  const nodeRx = nodeRetrograde(date);
+  const points: PlacedPoint[] = [
+    placePoint("pt.node", "NorthNode", "☊", "North Node", nodeLon, nodeRx),
+    placePoint("pt.southnode", "SouthNode", "☋", "South Node", (nodeLon + 180) % 360, nodeRx),
+    placePoint("pt.lilith", "Lilith", "⚸", "Lilith (mean)", meanLilithLon(date), false),
+  ];
+
   // Unknown time: quantify the Moon's whole-day range instead of presenting
   // the noon placeholder as fact (it can be up to ~7° off, occasionally a
   // different sign — and Moon contacts carry the heaviest synastry weights).
@@ -119,7 +139,7 @@ export function computeChart(input: ChartInput): ChartFacts {
   }
 
   return {
-    schemaVersion: "1.1",
+    schemaVersion: "1.2",
     engine: ENGINE,
     zodiac: "tropical",
     houseSystem: "whole_sign",
@@ -134,6 +154,7 @@ export function computeChart(input: ChartInput): ChartFacts {
       timeKnown: input.timeKnown,
     },
     planets,
+    points,
     asc,
     mc,
     houseCusps: cusps,

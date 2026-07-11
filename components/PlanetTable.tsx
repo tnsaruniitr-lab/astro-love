@@ -1,6 +1,7 @@
 "use client";
 
 import { BODIES, SIGNS, formatLon } from "@/lib/astro/zodiac";
+import { LILITH_LINE } from "@/lib/astro/loveCopy";
 import { useTheme } from "./ThemeProvider";
 import { useT } from "./LocaleProvider";
 import type { ChartFacts } from "@/lib/astro/types";
@@ -56,9 +57,42 @@ export default function PlanetTable({ chart }: { chart: ChartFacts }) {
                 </tr>
               );
             })}
+            {/* True node axis + Mean Lilith — the rows the astrology-literate
+                reader checks first. ☊ is the TRUE node (what pro software
+                shows), not the mean-node shortcut. */}
+            {(chart.points ?? []).map((p) => {
+              const sign = SIGNS.find((s) => s.key === p.sign)!;
+              return (
+                <tr key={p.id} className="hairline">
+                  <td className="py-2.5 pl-4">
+                    <span className="inline-flex items-center gap-2.5">
+                      <span style={{ fontFamily: GLYPH_FONT }} className="text-gold/90 text-lg leading-none">{p.glyph}</span>
+                      <span className="text-cream/90">{p.label}</span>
+                    </span>
+                  </td>
+                  <td className="py-2.5">
+                    <span className="inline-flex items-center gap-2">
+                      <span style={{ color: pal.element[sign.element], fontFamily: GLYPH_FONT }}>{sign.glyph}</span>
+                      <span className="text-cream/90 tabular-nums">{formatLon(p.lon)}</span>
+                      {p.retrograde && <span className="text-rose text-xs">℞</span>}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-4 text-right text-haze tabular-nums">{p.house ?? "·"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {(chart.points ?? []).some((p) => p.point === "Lilith") && (
+        <p className="text-[11px] text-haze/70 leading-relaxed mt-2.5">⚸ {LILITH_LINE}</p>
+      )}
+      {chart.planets.some((p) => p.retrograde) && (
+        <p className="text-[11px] text-haze/70 leading-relaxed mt-1.5">
+          ℞ marks a planet that was moving backward from Earth&apos;s view when you were born — its themes turn inward: felt deeply, shown selectively, mastered on your own timeline.
+        </p>
+      )}
     </div>
   );
 }

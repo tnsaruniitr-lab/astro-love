@@ -3,36 +3,72 @@
 import CheckoutButton from "./CheckoutButton";
 import { useT } from "./LocaleProvider";
 
-/** The unlock moment. A DECOY shimmer sits behind a centered glass call-to-
- *  action, so the user senses there is more without the real premium text ever
- *  entering the DOM. (Rendering the real locked content behind CSS blur would
- *  leak it to anyone who deletes the blur class — the paywall must be an
- *  access boundary, not a visual one.) One $2 unlock opens every flow. */
+/** A named locked item on the paywall "receipt": the card's real title plus a
+ *  personalized tease built ONLY from data the free tier already shows. */
+export interface ManifestItem {
+  title: string;
+  /** Personalized sub-line naming THEIR placements (the tease). */
+  sub?: string;
+}
+
+/** The unlock moment. Two modes:
+ *  - manifest: an itemized, personalized receipt of the sealed cards — she is
+ *    deciding on NAMED objects, not mystery rectangles.
+ *  - decoy (fallback): blurred placeholder lines, never the real text.
+ *  Either way the paywall stays an ACCESS boundary, not a visual one: nothing
+ *  premium ever enters the unpaid DOM (manifest titles/subs are computed from
+ *  free-tier facts only). One $2 unlock opens every flow. */
 export default function PaywallGate({
   blurb,
   next,
+  manifest,
+  manifestTitle,
 }: {
   blurb: string;
   next?: string;
+  manifest?: ManifestItem[];
+  manifestTitle?: string;
 }) {
   const t = useT();
+  const hasManifest = manifest && manifest.length > 0;
   return (
     <div className="relative overflow-hidden rounded-3xl border border-gold/15">
-      {/* Content-free teaser: blurred placeholder lines, never the real text. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 blur-[7px] opacity-30 pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black,transparent_88%)] px-8 py-10 space-y-3"
-      >
-        {[92, 78, 85, 64, 88, 72, 80].map((w, i) => (
-          <div key={i} className="h-3.5 rounded-full bg-cream/20" style={{ width: `${w}%` }} />
-        ))}
-      </div>
+      {/* Content-free decoy shimmer (only when there is no named manifest). */}
+      {!hasManifest && (
+        <div
+          aria-hidden
+          className="absolute inset-0 blur-[7px] opacity-30 pointer-events-none select-none [mask-image:linear-gradient(to_bottom,black,transparent_88%)] px-8 py-10 space-y-3"
+        >
+          {[92, 78, 85, 64, 88, 72, 80].map((w, i) => (
+            <div key={i} className="h-3.5 rounded-full bg-cream/20" style={{ width: `${w}%` }} />
+          ))}
+        </div>
+      )}
       <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-ink/55 via-ink/80 to-ink/95" />
 
-      <div className="relative px-5 py-12 sm:py-16 flex flex-col items-center text-center">
+      <div className={`relative px-5 ${hasManifest ? "py-8 sm:py-10" : "py-12 sm:py-16"} flex flex-col items-center text-center`}>
         <div className="text-3xl gold-text" aria-hidden style={{ textShadow: "0 0 18px rgb(var(--c-gold) / 0.4)" }}>✦</div>
         <h3 className="font-display text-2xl sm:text-3xl text-cream mt-2">{t.pay.title}</h3>
         <p className="text-haze text-sm sm:text-[15px] max-w-md mx-auto mt-2.5 leading-relaxed">{blurb}</p>
+
+        {hasManifest && (
+          <div className="mt-5 w-full max-w-md text-left rounded-2xl border border-gold/20 bg-ink/40 px-4 sm:px-5 py-4">
+            {manifestTitle && (
+              <div className="text-[10px] uppercase tracking-[0.22em] text-gold/85 mb-2.5">{manifestTitle}</div>
+            )}
+            <ul className="space-y-2">
+              {manifest!.map((m, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className="text-gold/70 text-[13px] mt-[1px] shrink-0" aria-hidden>🔒</span>
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] text-cream/95 leading-snug">{m.title}</span>
+                    {m.sub && <span className="block text-[11.5px] italic text-gold/75 leading-snug mt-0.5">{m.sub}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-6">
           <CheckoutButton next={next} priceLabel={t.pay.price} />
