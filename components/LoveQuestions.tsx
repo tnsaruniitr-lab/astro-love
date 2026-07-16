@@ -6,8 +6,10 @@ import type { LoveAnswer } from "@/lib/astro/natalReading";
 
 /** Tap-to-open love questions. The answers are computed SERVER-side and passed
  *  in only after entitlement is confirmed — the premium payload never exists in
- *  the browser for an unpaid visitor. */
-export default function LoveQuestions({ items }: { items: LoveAnswer[] }) {
+ *  the browser for an unpaid visitor. When the AI-written answers arrive
+ *  (`prose`, matched by index), they replace the template text; the
+ *  deterministic answer remains the instant fallback. */
+export default function LoveQuestions({ items, prose }: { items: LoveAnswer[]; prose?: Array<{ q: string; body: string }> | null }) {
   const t = useT();
   const [open, setOpen] = useState<number | null>(0);
 
@@ -30,7 +32,7 @@ export default function LoveQuestions({ items }: { items: LoveAnswer[] }) {
               </button>
               {isOpen && (
                 <div className="px-4 pb-4 fade-up">
-                  <p className="text-sm text-haze/90 leading-relaxed">{it.answer}</p>
+                  <p className="text-sm text-haze/90 leading-relaxed">{prose?.[i]?.body || it.answer}</p>
                   {it.note && <p className="text-xs text-gold/75 mt-2 leading-relaxed">✦ {it.note}</p>}
                 </div>
               )}

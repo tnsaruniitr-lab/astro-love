@@ -7,6 +7,8 @@
 // dating the future needs transits (a future milestone), not a prediction.
 
 import type { ChartFacts } from "./types";
+import { SIGNS } from "./zodiac";
+import { dignityOf, type Dignity } from "./enrich";
 
 const SIGN_NAMES = [
   "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
@@ -88,6 +90,29 @@ const SATURN_LOVE: Record<string, string> = {
   Pisces: "clear boundaries alongside the romance",
 };
 
+// The "your pattern" vocabulary (Q6): what each element's people look like to
+// a Venus that wants them, and what each element's Moon actually runs on.
+type Element = "fire" | "earth" | "air" | "water";
+const ELEMENT_EYE: Record<Element, string> = {
+  fire: "the spark: bold, fast-moving, a little dramatic",
+  earth: "the solid: steady, tangible, provably reliable",
+  air: "the conversation: quick, curious, socially alive",
+  water: "the depth: feeling-first, intuitive, all the way in",
+};
+const ELEMENT_FEED: Record<Element, string> = {
+  fire: "honest heat and forward motion",
+  earth: "consistency you can touch",
+  air: "room to think out loud together",
+  water: "emotional attunement, not performance",
+};
+
+const dignityWord: Record<Dignity, string> = {
+  domicile: "its home sign",
+  exaltation: "exaltation",
+  detriment: "detriment",
+  fall: "its fall",
+};
+
 const ordinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
@@ -164,6 +189,45 @@ export function loveQuestions(chart: ChartFacts): LoveAnswer[] {
     answer: `For you, lasting love is about ${SATURN_LOVE[saSign] ?? "patience and showing up"}.${houseClause}`,
     note: "This is not a prediction of staying together or splitting. Your choices matter most. It simply shows where steady effort pays off for you.",
   });
+
+  // 6. The pattern (HANDOFF B4): why the same type keeps happening — read from
+  // the Venus-vs-Moon element split, their dignities, and the 7th-house sign.
+  if (venus && moon) {
+    const vEl = SIGNS[venus.signIndex].element as Element;
+    const moEl = SIGNS[moon.signIndex].element as Element;
+
+    let core: string;
+    if (vEl === moEl) {
+      core = `Your Venus in ${vSign} and Moon in ${moSign} share one element, ${vEl}: what catches your eye is also what feeds you, so your type is remarkably consistent, ${ELEMENT_EYE[vEl]}. The pattern is not a mismatch, it is momentum: the familiar ${vEl} note feels like fate every time. The habit to watch is re-choosing the comfortable version of a lesson you have already learned.`;
+    } else {
+      core = `Your eye and your needs are running two different errands. Venus in ${vSign} (${vEl}) falls for ${ELEMENT_EYE[vEl]}, but your Moon in ${moSign} (${moEl}) can only truly rest with ${ELEMENT_FEED[moEl]}. Choose on Venus alone and the same story repeats: thrilling start, underfed finish. The person to look for carries enough ${vEl} to catch you and enough ${moEl} to keep you.`;
+    }
+
+    const vDig = dignityOf("Venus", venus.signIndex);
+    const moDig = dignityOf("Moon", moon.signIndex);
+    let dignities = "";
+    if (vDig === "detriment" || vDig === "fall") {
+      dignities += ` Venus in ${vSign} sits in ${dignityWord[vDig]}, the classic signature of taste under strain: love can feel like something to earn, which quietly selects for people who make you work for it.`;
+    } else if (vDig === "domicile" || vDig === "exaltation") {
+      dignities += ` Venus in ${vSign} sits in ${dignityWord[vDig]}, so your taste is strong and self-assured, and the pattern stays loyal to it, for better and worse.`;
+    }
+    if (moDig === "detriment" || moDig === "fall") {
+      dignities += ` And the Moon in ${moSign}, in ${dignityWord[moDig]}, tends to under-announce its needs, so partners keep failing a test they were never shown.`;
+    } else if (moDig === "domicile" || moDig === "exaltation") {
+      dignities += ` And the Moon in ${moSign}, in ${dignityWord[moDig]}, keeps your needs legible. Trust them: of the two, the Moon is the better picker.`;
+    }
+
+    const descClause = chart.asc
+      ? ` Your 7th house falls in ${SIGN_NAMES[(chart.asc.signIndex + 6) % 12]}: that is the type you keep contracting into partnership. Notice whether it matches the two pulls above or splits the difference.`
+      : "";
+
+    out.push({
+      q: "Why do I keep picking the same type?",
+      key: "pattern",
+      answer: `${core}${dignities}${descClause}`,
+      note: "A pattern is a habit, not a verdict. Naming the split is what lets you pick differently next time.",
+    });
+  }
 
   return out;
 }

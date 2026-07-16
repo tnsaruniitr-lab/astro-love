@@ -34,6 +34,7 @@ import { coupleArchetype, tilt } from "../lib/astro/insights";
 import { coupleScoreRange } from "../lib/astro/uncertainty";
 import { resolveInstant } from "../lib/geo/time";
 import { teaseCut } from "../lib/server/writer";
+import { loveQuestions } from "../lib/astro/natalReading";
 import type { ChartFacts, ChartInput, PlanetName } from "../lib/astro/types";
 
 const TOL_DEG = 2 / 60; // 2 arcminutes
@@ -362,6 +363,24 @@ ok(!!range && range.max >= range.min, "unknown-time couple score is a range", JS
 ok(coupleScoreRange(PEOPLE[0], PEOPLE[1]) === null, "both-times-known has no range");
 const synUnk = computeSynastry(computeChart({ ...PEOPLE[0], timeKnown: false }), FIX[1]);
 ok(synUnk.aspects.some((a) => a.timeSensitive), "Moon contacts that depend on the unknown time are flagged");
+
+// B4 "your pattern" natal Q&A: six questions, real placements, honest branches.
+{
+  const qs = loveQuestions(FIX[0]);
+  ok(qs.length === 6, "natal Q&A now has six questions", String(qs.length));
+  const pattern = qs.find((q) => q.key === "pattern")!;
+  ok(!!pattern, "the pattern question exists");
+  const venus = FIX[0].planets.find((p) => p.body === "Venus")!;
+  const moon = FIX[0].planets.find((p) => p.body === "Moon")!;
+  ok(pattern.answer.includes(venus.sign) && pattern.answer.includes(moon.sign), "pattern answer names the real Venus and Moon signs", pattern.answer.slice(0, 80));
+  ok(!!pattern.note && pattern.note.includes("habit"), "pattern is framed as a habit, never a verdict");
+  ok(JSON.stringify(loveQuestions(FIX[0])) === JSON.stringify(qs), "pattern answer is deterministic");
+  // Unknown birth time: the pattern still computes (no houses needed) but must
+  // not mention the 7th house.
+  const unk = computeChart({ ...PEOPLE[0], timeKnown: false });
+  const pUnk = loveQuestions(unk).find((q) => q.key === "pattern")!;
+  ok(!!pUnk && !pUnk.answer.includes("7th house"), "unknown-time pattern answer drops the 7th-house clause");
+}
 
 // B1 tease cut: deterministic, always mid-clause, prefix-faithful.
 {

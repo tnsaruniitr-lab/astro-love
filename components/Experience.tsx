@@ -73,7 +73,7 @@ export default function Experience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chartInput ? JSON.stringify(chartInput) : null, locale],
   );
-  const { gate, natalAnswers, places, transits, homeScore } = useReading(readingReq);
+  const { gate, natalAnswers, places, transits, homeScore, prose } = useReading(readingReq);
   const unlocked = gate === "open";
 
   // Free timing tease: the FIRST love window with real dates, computed in the
@@ -91,7 +91,17 @@ export default function Experience({
   if (chart && !unlocked) {
     const venus = chart.planets.find((p) => p.body === "Venus");
     const moon = chart.planets.find((p) => p.body === "Moon");
-    natalManifest.push({ title: "Your five love questions, answered from your chart", sub: venus && moon ? `read from your ♀ ${SIGNS[venus.signIndex].en} and ☾ ${SIGNS[moon.signIndex].en}, degrees attached` : undefined });
+    natalManifest.push({ title: "Your six love questions, answered from your chart", sub: venus && moon ? `read from your ♀ ${SIGNS[venus.signIndex].en} and ☾ ${SIGNS[moon.signIndex].en}, degrees attached` : undefined });
+    // B4 tease: name her ACTUAL Venus-vs-Moon split (free-tier facts only).
+    if (venus && moon) {
+      const sameEl = SIGNS[venus.signIndex].element === SIGNS[moon.signIndex].element;
+      natalManifest.push({
+        title: "Why you keep picking the same type",
+        sub: sameEl
+          ? `your ♀ ${SIGNS[venus.signIndex].en} and ☾ ${SIGNS[moon.signIndex].en} agree (${SIGNS[venus.signIndex].element}) — the loop is momentum, decoded inside`
+          : `your ♀ ${SIGNS[venus.signIndex].en} eye (${SIGNS[venus.signIndex].element}) vs your ☾ ${SIGNS[moon.signIndex].en} needs (${SIGNS[moon.signIndex].element}) — the loop, decoded`,
+      });
+    }
     natalManifest.push({
       title: "Your timing windows — dated",
       sub: freeLoveWindows.length > 1
@@ -169,7 +179,7 @@ export default function Experience({
                 </div>
               )}
               {unlocked
-                ? (natalAnswers ? <LoveQuestions items={natalAnswers} /> : <AnswersLoading />)
+                ? (natalAnswers ? <LoveQuestions items={natalAnswers} prose={prose && "answers" in prose ? prose.answers : null} /> : <AnswersLoading />)
                 : <PaywallGate blurb={t.pay.natal} next="/natal" manifest={natalManifest} manifestTitle="Still sealed for you" />}
               {unlocked && transits && <TransitCard transits={transits} />}
               {unlocked && places && <WherePlacesCard places={places} homeScore={homeScore} chartInput={chartInput} />}

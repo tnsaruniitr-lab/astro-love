@@ -456,7 +456,7 @@ export async function writeNatalProse(chart: ChartFacts, locale: string): Promis
       model: WRITER_MODEL,
       max_tokens: 3000,
       thinking: { type: "adaptive" },
-      system: `You answer five love questions from ONE person's computed natal placements, for AstroMatch. Same absolute rules as all AstroMatch prose: only the supplied placements exist; never invent signs/houses; no event prediction or timing claims (a natal chart shows HOW someone loves, not WHEN things happen — say so if asked about timing); no fatalism; write natively in the "locale" language. Warm, specific, 50-90 words per answer. The five questions, in order: (1) What am I like in love? (2) What kind of partner suits me? (3) What do I need to feel loved? (4) When will I find love? — answer honestly that charts don't date events, then describe the energy they bring. (5) What helps my relationships last? If timeKnown is false, houses and the Ascendant are unavailable — say question 2 needs a birth time rather than guessing.`,
+      system: `You answer six love questions from ONE person's computed natal placements, for AstroMatch. Same absolute rules as all AstroMatch prose: only the supplied placements exist; never invent signs/houses; no event prediction or timing claims (a natal chart shows HOW someone loves, not WHEN things happen — say so if asked about timing); no fatalism; write natively in the "locale" language. Warm, specific, 50-90 words per answer. The six questions, in order: (1) What am I like in love? (2) What kind of partner suits me? (3) What do I need to feel loved? (4) When will I find love? — answer honestly that charts don't date events, then describe the energy they bring. (5) What helps my relationships last? (6) Why do I keep picking the same type? — read the tension or agreement between the Venus sign/element and the Moon sign/element (and the 7th-house sign if available): what the eye falls for versus what actually feeds them, framed as a nameable habit, never a verdict. If timeKnown is false, houses and the Ascendant are unavailable — say question 2 needs a birth time rather than guessing.`,
       output_config: { effort: WRITER_EFFORT, format: { type: "json_schema", schema: NATAL_SCHEMA } },
       messages: [{ role: "user", content: `PLACEMENTS:\n${JSON.stringify(facts, null, 1)}` }],
     });
@@ -464,7 +464,7 @@ export async function writeNatalProse(chart: ChartFacts, locale: string): Promis
     const text = response.content.find((b) => b.type === "text")?.text;
     if (!text) return null;
     const parsed = JSON.parse(text) as { answers: Array<{ q: string; body: string }> };
-    if (!Array.isArray(parsed.answers) || parsed.answers.length !== 5) return null;
+    if (!Array.isArray(parsed.answers) || parsed.answers.length !== 6) return null;
     if (parsed.answers.some((a) => !a.body || a.body.trim().length < 40)) return null;
     return { answers: parsed.answers, locale, model: WRITER_MODEL };
   } catch (err) {

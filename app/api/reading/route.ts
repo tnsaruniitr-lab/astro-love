@@ -144,7 +144,9 @@ export async function POST(req: Request) {
       let prose: NatalProse | null = null;
       if (wantProse) {
         // Cost guard: memory cache → durable DB cache → generate once.
-        const key = proseCacheKey(["natal", body.a, locale]);
+        // v2: six answers (the "your pattern" question joined the set) — the
+        // version tag keeps stale five-answer cache rows from being served.
+        const key = proseCacheKey(["natal", body.a, locale, "v2"]);
         prose = proseCacheGet<NatalProse>(key) ?? (await loadProse<NatalProse>(key));
         if (!prose) {
           prose = await writeNatalProse(chart, locale);
