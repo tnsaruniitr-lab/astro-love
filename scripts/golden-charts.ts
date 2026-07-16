@@ -27,7 +27,8 @@ import { directionalSplit } from "../lib/astro/directional";
 import { detectHotCold } from "../lib/astro/hotcold";
 import { needsProfile, moonMatch } from "../lib/astro/decoders";
 import { coupleTiming } from "../lib/astro/coupleTiming";
-import { HOTCOLD_REGISTER } from "../lib/astro/loveCopy";
+import { HOTCOLD_REGISTER, HOUSE_DIALECT } from "../lib/astro/loveCopy";
+import { overlayDialect, dialectTease } from "../lib/astro/overlayDialect";
 import { SIGNS } from "../lib/astro/zodiac";
 import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
@@ -363,6 +364,29 @@ ok(!!range && range.max >= range.min, "unknown-time couple score is a range", JS
 ok(coupleScoreRange(PEOPLE[0], PEOPLE[1]) === null, "both-times-known has no range");
 const synUnk = computeSynastry(computeChart({ ...PEOPLE[0], timeKnown: false }), FIX[1]);
 ok(synUnk.aspects.some((a) => a.timeSensitive), "Moon contacts that depend on the unknown time are flagged");
+
+// B5 house-overlay dialect: both directions, receipts, honest degradation.
+{
+  const d = overlayDialect(FIX[0], FIX[1], "A", "B");
+  ok(d.available && d.items.length === 8, "dialect computes 4 planets x 2 directions when both times known", String(d.items.length));
+  ok(d.items.every((i) => i.house >= 1 && i.house <= 12), "dialect houses are all 1..12");
+  ok(d.items.every((i) => i.receipt.includes("°") && i.receipt.includes("Ascendant")), "every dialect item carries a positional receipt");
+  ok(d.items.every((i) => i.read.length > 80 && i.arena.length > 0), "every dialect read is substantive with an arena label");
+  ok(JSON.stringify(overlayDialect(FIX[0], FIX[1], "A", "B")) === JSON.stringify(d), "dialect is deterministic");
+  ok(Object.keys(HOUSE_DIALECT).length === 12, "the dialect register covers all 12 houses");
+  const tease = dialectTease(d)!;
+  ok(!!tease && !tease.read.startsWith(tease.arena), "tease exposes placement + arena, and the read is separate");
+  // Host with unknown time: that direction disappears with an honest note.
+  const unkB = computeChart({ ...PEOPLE[1], timeKnown: false });
+  const dUnk = overlayDialect(FIX[0], unkB, "A", "B");
+  ok(dUnk.items.every((i) => i.from === "B") === false || dUnk.items.every((i) => i.hostName !== "B"), "no landings into an unknown-time host");
+  ok(dUnk.items.every((i) => i.from === "B"), "only the known-host direction survives", dUnk.items.map((i) => i.from).join(","));
+  ok(dUnk.missing.length === 1 && dUnk.missing[0].includes("birth time"), "missing direction is named honestly");
+  // Guest Moon with unknown owner time is flagged, not dropped.
+  ok(d.items.filter((i) => i.body === "Moon").every((i) => !i.timeSensitive), "known-time guest Moons are not flagged");
+  const dUnkGuest = overlayDialect(unkB, FIX[0], "B2", "A");
+  ok(dUnkGuest.items.filter((i) => i.body === "Moon").every((i) => i.timeSensitive), "unknown-time guest Moon carries the day-range flag");
+}
 
 // B4 "your pattern" natal Q&A: six questions, real placements, honest branches.
 {

@@ -259,3 +259,59 @@ export const NODE_CONTACT_READ: { north: Record<string, string>; south: Record<s
 // ──────────────────────────────── Lilith ────────────────────────────────
 
 export const LILITH_LINE: string = "Mean Lilith is a calculated point, the average far point of the Moon's orbit, and in a chart row it marks raw, unbargained magnetism: the appetite you refuse to domesticate, which a partner gets to meet on its own terms or not at all.";
+
+// ─────────────────── house overlays: the dialect (HANDOFF B5) ───────────────────
+// "His Moon in your 8th": what a guest planet does in each house of the host's
+// chart. Written host/guest-neutral so any of Sun/Moon/Venus/Mars reads true;
+// the card headline carries the specific planet and names.
+
+export const HOUSE_DIALECT: Record<number, { arena: string; read: string }> = {
+  1: {
+    arena: "the front door",
+    read: "Lands before words do: the host reacts to this planet's owner on sight, and the owner feels unusually seen, sometimes more seen than they signed up for. Identity and image entangle fast here, and the two of you read as a couple to strangers almost immediately.",
+  },
+  2: {
+    arena: "the ledger",
+    read: "The host's zone of security, money and what counts as solid. The owner becomes part of how safe the host feels: steadying when this planet gives, rattling when it withdraws. Care here talks in practical dialect, gifts, fixing, providing, and gets underread as unromantic.",
+  },
+  3: {
+    arena: "the group chat",
+    read: "Daily talk, errands, sibling-level banter. The owner becomes the host's favorite person to narrate the day to, which is real intimacy wearing casual clothes. The trap is staying in the shallows: endless logistics and jokes standing in for the one conversation that matters.",
+  },
+  4: {
+    arena: "the kitchen table",
+    read: "Straight into the host's private interior: family, home, the unguarded self. The owner gets shown the version of the host that guests never meet, and starts to feel like family fast, with everything the word implies, including the host's oldest reflexes.",
+  },
+  5: {
+    arena: "the dance floor",
+    read: "The host's romance and play circuit lights up around this planet: flirtation stays alive long past the point most couples archive it. The owner is cast as the fun one, the muse, the crush. Watch what happens when life demands boring competence, this house resents the unsexy chapters.",
+  },
+  6: {
+    arena: "the daily grind",
+    read: "Routines, health, who does what by when. Unglamorous and quietly decisive: the owner either becomes the person who makes the host's ordinary life run better, or the one whose habits grind. Love here looks like refilled prescriptions and remembered appointments, notice it or lose it.",
+  },
+  7: {
+    arena: "the contract",
+    read: "The host's partnership seat: this planet's owner simply fits the role of significant other, and the relationship pulls toward definition, labels, terms, futures. The pull is real but impersonal, the house wants a partner; make sure it is also about this one.",
+  },
+  8: {
+    arena: "the vault",
+    read: "Trust, merging, the things the host tells no one. The owner gets a key without asking for it, so the connection runs deep and slightly out of daylight: transformative on trust, obsessive on doubt. Casual is not on the menu in this house, and both of you can feel it.",
+  },
+  9: {
+    arena: "the open road",
+    read: "Beliefs, travel, the bigger map. The owner arrives as a horizon-widener: new places, new frameworks, the sense that life got larger on contact. The friction shows up at customs, when belief systems differ and neither of you wants to convert.",
+  },
+  10: {
+    arena: "the podium",
+    read: "The host's public life and ambitions. The owner gets woven into how the host is seen professionally, power-couple energy when aligned, image management when not. Feelings here get audited for optics, so keep one channel between you that answers to no audience.",
+  },
+  11: {
+    arena: "the found family",
+    read: "Friends, futures, the chosen tribe. The owner is folded into the host's long game and circle, loved as ally and co-conspirator. The warmth is durable and low-drama; the watch item is the romance getting parked in the friend zone's comfortable weather.",
+  },
+  12: {
+    arena: "the back room",
+    read: "The host's blind spot and inner sea. The owner touches what the host has not fully met in themselves: dreams, leaks, the unnamed. Tenderness here is enormous and boundaries are not, so say the quiet parts out loud on a schedule, before the fog writes its own story.",
+  },
+};

@@ -21,6 +21,7 @@ import { detectHotCold, type HotCold } from "@/lib/astro/hotcold";
 import { needsProfile, moonMatch, type NeedsProfile, type NeedsPerson, type MoonMatch } from "@/lib/astro/decoders";
 import { nodeContacts, type NodeContacts } from "@/lib/astro/nodeContacts";
 import { coupleTiming, type CoupleTiming } from "@/lib/astro/coupleTiming";
+import { overlayDialect, dialectTease, type OverlayDialect } from "@/lib/astro/overlayDialect";
 import type { ManifestItem } from "./Paywall";
 import {
   archetypeReading, strongestThread, subscoreRead, scoreMeaning, dimensionsLead, bringsLead,
@@ -318,9 +319,10 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     np: needsProfile(a, b, syn.names.a, syn.names.b),
     nc: nodeContacts(a, b, syn.names.a, syn.names.b),
     timing: coupleTiming(a, b, syn.names.a, syn.names.b, new Date()),
+    dialect: overlayDialect(a, b, syn.names.a, syn.names.b),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [syn]);
-  const { dir, hc, mm, np, nc, timing } = decoded;
+  const { dir, hc, mm, np, nc, timing, dialect } = decoded;
 
   // Premium is confirmed by the SERVER (signed entitlement token), not by a
   // local flag — and the AI-written reading only exists server-side.
@@ -386,6 +388,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     { key: "flowgrow", hint: h.flowgrow, node: <FlowGrowCard syn={syn} /> },
     { key: "wheel", hint: h.wheel, node: <WheelCard a={a} b={b} syn={syn} /> },
     ...(syn.overlays.length > 0 ? [{ key: "brings", hint: h.brings, node: <BringsCard syn={syn} /> }] : []),
+    ...(dialect.available ? [{ key: "dialect", hint: "Where your planets land in each other's lives", node: <OverlayDialectCard dialect={dialect} /> }] : []),
     { key: "shine", hint: h.shine, node: <ShineCard reads={reads} /> },
   ];
 
@@ -402,7 +405,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     ? 1 /* written reading */ + (thread ? 1 : 0) + (np.available ? 1 : 0) + (mm ? 1 : 0) +
       (hc ? 1 : 0) + (dir.available ? 1 : 0) + (nc.available ? 1 : 0) + (timing.available ? 1 : 0) +
       1 /* composite */ + 3 /* dims, tend, flowgrow */ + 1 /* wheel */ +
-      (syn.overlays.length > 0 ? 1 : 0) + 1 /* shine */
+      (syn.overlays.length > 0 ? 1 : 0) + (dialect.available ? 1 : 0) + 1 /* shine */
     : 0;
   const displayTotal = locked ? FREE + sealedCount : total;
 
@@ -425,6 +428,11 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
       const pn = c.planetOwner === "A" ? syn.names.a : syn.names.b;
       const nn = c.nodeOwner === "A" ? syn.names.a : syn.names.b;
       manifest.push({ title: "Fate or rerun? A destiny-line contact", sub: `${pn}'s ${c.planet} on ${nn}'s ${c.node === "north" ? "North" : "South"} Node, orb ${c.orb}°` });
+    }
+    {
+      // B5 tease: name the single most loaded landing (placement only, never the read).
+      const dt = dialectTease(dialect);
+      if (dt) manifest.push({ title: "Where your planets land in each other's lives", sub: `${dt.ownerName}'s ${dt.body} sits in ${dt.hostName}'s ${ORD(dt.house)} house, ${dt.arena} — decoded inside` });
     }
     manifest.push({ title: "Your relationship's own chart", sub: "the composite — one chart for the bond itself" });
     manifest.push({ title: "Five dimensions, synastry wheel & more", sub: `all ${syn.aspects.length} contacts between your charts, scored and drawn` });
@@ -1237,6 +1245,53 @@ function WheelCard({ a, b, syn }: { a: ChartFacts; b: ChartFacts; syn: SynastryR
         <Legend c={pal.aspect.tension} t={t.compat.challenging} />
         <Legend c={pal.aspect.blending} t={t.compat.conjunction} />
       </div>
+    </div>
+  );
+}
+
+const ORD = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+};
+
+/** B5: the house-overlay dialect — where each person's Sun/Moon/Venus/Mars
+ *  lands in the other's houses, in contemporary voice, receipts attached.
+ *  Renders only when at least one direction has a known-time host chart. */
+function OverlayDialectCard({ dialect }: { dialect: OverlayDialect }) {
+  const { palette: pal } = useTheme();
+  const aSide = dialect.items.filter((i) => i.from === "A");
+  const bSide = dialect.items.filter((i) => i.from === "B");
+  const Col = ({ items, accent }: { items: typeof dialect.items; accent: string }) => (
+    <div className="space-y-4">
+      {items.map((it) => (
+        <div key={`${it.from}-${it.body}`} className="rounded-2xl border border-cream/10 bg-cream/[0.03] px-4 py-3.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-[15px] text-cream/95 leading-snug">
+              <span style={{ color: accent }}>{it.ownerName}&apos;s {it.body}</span> in {it.hostName}&apos;s {ORD(it.house)}
+            </div>
+            <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-gold/80">{it.arena}</span>
+          </div>
+          <p className="text-sm text-haze/90 leading-relaxed mt-1.5">{it.read}</p>
+          {it.timeSensitive && (
+            <p className="text-[11px] text-gold/70 mt-1.5">✦ Moon position carries a day-range (birth time unknown) — this landing could shift one house.</p>
+          )}
+          <p className="text-[11px] text-haze/60 mt-1.5 tabular-nums">{it.receipt}</p>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div className="glass p-6 sm:p-8">
+      <h3 className="font-display text-xl text-cream text-center mb-1">The house dialect</h3>
+      <p className="text-xs text-haze text-center mb-5">Where your planets land in each other&apos;s lives — every landing measured from a real Ascendant.</p>
+      <div className="grid sm:grid-cols-2 gap-5">
+        <Col items={aSide} accent={pal.personA} />
+        <Col items={bSide} accent={pal.personB} />
+      </div>
+      {dialect.missing.map((m, i) => (
+        <p key={i} className="text-[11.5px] text-haze/70 text-center mt-4">{m}</p>
+      ))}
     </div>
   );
 }
