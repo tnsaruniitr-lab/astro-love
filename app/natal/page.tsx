@@ -2,7 +2,7 @@ import Experience from "@/components/Experience";
 import type { BirthFormValues } from "@/components/BirthForm";
 
 export const metadata = {
-  title: "Astro-Love · Natal Chart",
+  title: "Natal Chart",
   description: "Your real birth chart, computed from astronomy, the foundation of math-based love compatibility.",
 };
 
