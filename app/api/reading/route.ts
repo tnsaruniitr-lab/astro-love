@@ -8,7 +8,7 @@ import { loadProse, recordReading } from "@/lib/server/db";
 import { wherePlaces, scoreLocation } from "@/lib/astro/astrocartography";
 import { transitTiming } from "@/lib/astro/transits";
 import { computeComposite } from "@/lib/astro/composite";
-import { proseAvailable, writeCoupleProse, writeNatalProse, type CoupleProse, type NatalProse } from "@/lib/server/writer";
+import { proseAvailable, writeCoupleProse, writeNatalProse, writeLeadSentence, teaseCut, type CoupleProse, type NatalProse } from "@/lib/server/writer";
 import type { ChartInput } from "@/lib/astro/types";
 
 // The premium gate, server-side. The client may compute the deterministic
@@ -49,6 +49,39 @@ function validInput(x: unknown): x is ChartInput {
   );
 }
 
+/** One lead sentence per (couple, locale), ever: memory cache → durable DB
+ *  row (kind "lead") → one small-model generation. Failures return null and
+ *  simply retry on a later gate check. */
+async function coupleLead(a: ChartInput, b: ChartInput, locale: string): Promise<string | null> {
+  const leadKey = proseCacheKey(["lead", a, b, locale]);
+  const cached =
+    proseCacheGet<{ sentence: string }>(leadKey) ?? (await loadProse<{ sentence: string }>(leadKey));
+  if (cached?.sentence) {
+    proseCacheSet(leadKey, cached);
+    return cached.sentence;
+  }
+  try {
+    const chartA = computeChart(a);
+    const chartB = computeChart(b);
+    const syn = computeSynastry(chartA, chartB, a.name || "Person A", b.name || "Person B");
+    const sentence = await writeLeadSentence(syn, locale);
+    if (!sentence) return null;
+    proseCacheSet(leadKey, { sentence });
+    void recordReading({
+      kind: "lead",
+      inputHash: leadKey,
+      locale,
+      inputs: { a, b },
+      prose: { sentence },
+      proseModel: process.env.LEAD_MODEL || "claude-haiku-4-5",
+    });
+    return sentence;
+  } catch (err) {
+    console.error("[reading] lead failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 export async function POST(req: Request) {
   let body: Record<string, unknown>;
   try {
@@ -77,7 +110,17 @@ export async function POST(req: Request) {
   if (!entitled) {
     // Stale/absent token. If the client still holds the paid ref, it should
     // re-verify via /api/pay/verify to mint a fresh token, then retry.
-    return NextResponse.json({ entitled: false, proseAvailable: proseAvailable() }, { status: 200 });
+    //
+    // B1: for a locked COUPLE, leak exactly one sentence of the real reading —
+    // generated once per couple on a small model, cached, cut mid-clause. The
+    // full sentence later OPENS the paid reading, so the tease is a promise,
+    // never a fake. Inputs were validated above; no key → no lead (never fake).
+    let lead: string | undefined;
+    if (mode === "couple" && proseAvailable()) {
+      const full = await coupleLead(body.a as ChartInput, body.b as ChartInput, locale);
+      if (full) lead = teaseCut(full);
+    }
+    return NextResponse.json({ entitled: false, proseAvailable: proseAvailable(), ...(lead ? { lead } : {}) }, { status: 200 });
   }
 
   if (mode === "love") {
@@ -137,7 +180,12 @@ export async function POST(req: Request) {
     const key = proseCacheKey(["couple", body.a, body.b, locale]);
     let prose = proseCacheGet<CoupleProse>(key) ?? (await loadProse<CoupleProse>(key));
     if (!prose) {
-      prose = await writeCoupleProse(syn, locale);
+      // If a lead sentence was teased while locked, the paid reading must open
+      // with it verbatim. Cache lookup only — never generate a lead here.
+      const leadKey = proseCacheKey(["lead", body.a, body.b, locale]);
+      const cachedLead =
+        proseCacheGet<{ sentence: string }>(leadKey) ?? (await loadProse<{ sentence: string }>(leadKey));
+      prose = await writeCoupleProse(syn, locale, cachedLead?.sentence ?? null);
     }
     proseCacheSet(key, prose);
     void recordReading({

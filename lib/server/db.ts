@@ -141,7 +141,7 @@ export async function recordPurchase(rec: {
 /** Upsert a reading outcome; keeps the first row per input_hash and fills in
  *  prose/summary/purchase_ref as they become available. */
 export async function recordReading(rec: {
-  kind: "couple" | "natal";
+  kind: "couple" | "natal" | "lead";
   inputHash: string;
   locale: string;
   inputs: unknown;

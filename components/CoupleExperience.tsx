@@ -329,7 +329,7 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(inputs), locale],
   );
-  const { gate, prose, proseLoading, composite } = useReading(readingReq);
+  const { gate, prose, proseLoading, composite, lead } = useReading(readingReq);
   const unlocked = gate === "open";
 
   // Free-tier teases (rendered only while locked): computed, personalized,
@@ -417,7 +417,9 @@ function Result({ result, staged, forms }: { result: CoupleResult; staged: boole
     if (dir.available) manifest.push({ title: "Which of you carries more of the charge", sub: dir.notablyUneven ? "it isn't even — see which side" : "remarkably even — see why that's rare" });
     if (mm) manifest.push({ title: "Your Moon match", sub: `☾ ${mm.aSign} × ☾ ${mm.bSign} — how you each read safety` });
     if (timing.available) manifest.push({ title: "Your year together, dated", sub: timing.nextInDays === 0 ? "a window is open right now" : timing.nextInDays != null ? `the next window opens in ${timing.nextInDays} days` : "your love windows for the next 12 months" });
-    manifest.push({ title: "Your written reading", sub: "composed for you two from your exact charts" });
+    // B1: the tease is one real sentence of THEIR reading, cut mid-clause —
+    // the paid essence opens with the full sentence, so the promise is kept.
+    manifest.push({ title: "Your written reading", sub: lead ?? "composed for you two from your exact charts" });
     if (nc.available) {
       const c = nc.contacts[0];
       const pn = c.planetOwner === "A" ? syn.names.a : syn.names.b;

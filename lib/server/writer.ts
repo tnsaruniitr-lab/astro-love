@@ -19,6 +19,9 @@ import { archetypeReading } from "../astro/insights";
 import { contactFacts } from "../astro/enrich";
 
 const WRITER_MODEL = process.env.WRITER_MODEL || "claude-opus-4-8";
+// The one-sentence manifest tease (B1) is a tiny, high-volume call — a small
+// fast model is the right tool; the paid reading stays on WRITER_MODEL.
+const LEAD_MODEL = process.env.LEAD_MODEL || "claude-haiku-4-5";
 // The deterministic used_fact_ids validator is the HARD anti-hallucination gate
 // (every asserted fact id must exist). A small LLM double-check is unreliable —
 // Haiku routinely sets faithful:false while its own reasoning concludes the
@@ -183,10 +186,14 @@ Write exactly four sections:
 - advice: three or four concrete, doable things this specific couple can act on this week, each rooted in a fact.`;
 
 /** One grounded prose generation. Returns null when unavailable or when the
- *  output fails validation twice — callers then use the template fallback. */
+ *  output fails validation twice — callers then use the template fallback.
+ *  When `lead` is given (the B1 manifest tease), the essence section must open
+ *  with it verbatim, so the sentence the buyer saw cut off is the sentence the
+ *  paid reading completes. */
 export async function writeCoupleProse(
   syn: SynastryResult,
   locale: string,
+  lead?: string | null,
 ): Promise<CoupleProse | null> {
   if (!proseAvailable()) return null;
 
@@ -197,13 +204,17 @@ export async function writeCoupleProse(
     ...facts.overlays.map((o) => o.id),
   ]);
 
+  const leadConstraint = lead
+    ? `\n\nOPENING CONSTRAINT: the essence section must BEGIN with this exact sentence, verbatim and unaltered (then continue naturally from it): ${lead}`
+    : "";
+
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const response = await client.messages.create({
         model: WRITER_MODEL,
         max_tokens: 4000,
         thinking: { type: "adaptive" },
-        system: WRITER_SYSTEM,
+        system: WRITER_SYSTEM + leadConstraint,
         output_config: { effort: WRITER_EFFORT, format: { type: "json_schema", schema: PROSE_SCHEMA } },
         messages: [
           {
@@ -223,6 +234,17 @@ export async function writeCoupleProse(
       const parsed = JSON.parse(text) as { sections: ProseSection[]; used_fact_ids: string[] };
 
       if (!validate(parsed, validIds)) continue;
+
+      // The tease promise: the paid essence opens with the leaked sentence.
+      // One retry via the loop; as a last resort prepend it (never break the
+      // "starts with what you saw" contract a buyer just paid on).
+      if (lead) {
+        const essence = parsed.sections.find((s) => s.key === "essence");
+        if (essence && !essence.body.trimStart().startsWith(lead.trim())) {
+          if (attempt === 0) continue;
+          essence.body = `${lead.trim()} ${essence.body.trimStart()}`;
+        }
+      }
 
       // Faithfulness: fail CLOSED. If the pass is enabled and does not return an
       // explicit "faithful" verdict (rejected, errored, or empty), we discard
@@ -313,6 +335,75 @@ async function faithful(
   } catch {
     return true; // advisory only — a checker error must not block the reading
   }
+}
+
+// ───────────────────────── the B1 lead sentence ─────────────────────────
+
+const SIGNS = [
+  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces",
+];
+
+const LEAD_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["sentence"],
+  properties: { sentence: { type: "string" } },
+} as const;
+
+/** The opening sentence of the couple's written reading (HANDOFF B1).
+ *  Generated once per couple on a small model, cached by the caller. Must
+ *  embed at least one exact planet°sign anchor from the fact contract — the
+ *  proof that this sentence was written from THEIR charts, not a template.
+ *  Returns the FULL sentence; the caller truncates for the locked manifest. */
+export async function writeLeadSentence(syn: SynastryResult, locale: string): Promise<string | null> {
+  if (!proseAvailable()) return null;
+
+  // Tight timeout: this runs inside the fast gate check, not the prose fetch.
+  const client = new Anthropic({ maxRetries: 0, timeout: 9_000 });
+  const facts = buildFactContract(syn, locale);
+  const top = facts.aspects.slice(0, 6);
+  if (top.length === 0) return null;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await client.messages.create({
+        model: LEAD_MODEL,
+        max_tokens: 300,
+        output_config: { format: { type: "json_schema", schema: LEAD_SCHEMA } },
+        system: `You write the OPENING SENTENCE of a paid couple's astrology reading for AstroMatch ("real math, every point traces to a named aspect"). One sentence, 25-40 words, warm and specific, using both names. It MUST quote at least one exact position anchor copied character-for-character from a proof line (e.g. "Venus 12.3° Taurus" — keep the degree notation exactly as given, whatever the sentence language). Never invent placements: only the supplied contacts exist. No predictions, no doom. Write in the language of locale "${locale}". Start mid-story, as if the reading is already underway — the sentence should make the reader need the next one.${attempt > 0 ? " Your previous attempt was missing an exact °-anchor from the proofs — include one verbatim." : ""}`,
+        messages: [
+          {
+            role: "user",
+            content: `NAMES: ${facts.names.a} & ${facts.names.b}\nSCORE: ${facts.score} (${facts.band})\nSTRONGEST CONTACTS (with proof lines to quote anchors from):\n${top
+              .map((a) => `- ${a.headline} [${a.proof}]`)
+              .join("\n")}`,
+          },
+        ],
+      });
+      if (response.stop_reason === "refusal") return null;
+      const text = response.content.find((b) => b.type === "text")?.text;
+      if (!text) continue;
+      const sentence = (JSON.parse(text) as { sentence?: string }).sentence?.trim();
+      if (!sentence || sentence.length < 60 || sentence.length > 400) continue;
+      // The anchor gate: an exact degree notation plus a real sign name.
+      if (!sentence.includes("°") || !SIGNS.some((s) => sentence.includes(s))) continue;
+      return sentence;
+    } catch (err) {
+      console.error(`[writer] lead attempt ${attempt + 1} failed:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return null;
+}
+
+/** Deterministic mid-clause cut for the locked manifest: enough words to hook,
+ *  never the whole thought. The full sentence opens the paid reading. */
+export function teaseCut(sentence: string): string {
+  const words = sentence.trim().split(/\s+/);
+  // Show ~62%, always hiding at least 4 words and showing at least 6.
+  const cut = Math.max(6, Math.min(words.length - 4, Math.floor(words.length * 0.62)));
+  if (cut >= words.length) return sentence;
+  return words.slice(0, cut).join(" ").replace(/[,;:.!?]+$/, "") + "…";
 }
 
 // ───────────────────────── natal love-answers prose ─────────────────────────

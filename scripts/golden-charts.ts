@@ -33,6 +33,7 @@ import { pairValence } from "../lib/astro/aspects";
 import { coupleArchetype, tilt } from "../lib/astro/insights";
 import { coupleScoreRange } from "../lib/astro/uncertainty";
 import { resolveInstant } from "../lib/geo/time";
+import { teaseCut } from "../lib/server/writer";
 import type { ChartFacts, ChartInput, PlanetName } from "../lib/astro/types";
 
 const TOL_DEG = 2 / 60; // 2 arcminutes
@@ -361,6 +362,21 @@ ok(!!range && range.max >= range.min, "unknown-time couple score is a range", JS
 ok(coupleScoreRange(PEOPLE[0], PEOPLE[1]) === null, "both-times-known has no range");
 const synUnk = computeSynastry(computeChart({ ...PEOPLE[0], timeKnown: false }), FIX[1]);
 ok(synUnk.aspects.some((a) => a.timeSensitive), "Moon contacts that depend on the unknown time are flagged");
+
+// B1 tease cut: deterministic, always mid-clause, prefix-faithful.
+{
+  const S =
+    "With Maya's Venus 12.3° Taurus wrapped around Daniel's Moon 14.1° Taurus, the tenderness between you two was never an accident, and the charts keep saying so in three different ways.";
+  const cut = teaseCut(S);
+  ok(cut.endsWith("…"), "tease cut ends mid-thought with an ellipsis", cut);
+  ok(!cut.includes(S.split(" ").slice(-3).join(" ")), "tease cut hides the end of the sentence");
+  const shown = cut.slice(0, -1).trim();
+  ok(S.replace(/[,;:.!?]/g, "").startsWith(shown.replace(/[,;:.!?]/g, "")), "tease cut is a verbatim prefix of the full sentence");
+  ok(teaseCut(S) === cut, "tease cut is deterministic");
+  const short = "One two three four five six seven eight nine ten.";
+  const shortCut = teaseCut(short);
+  ok(shortCut.endsWith("…") && shortCut.split(/\s+/).length <= 6, "short sentences still hide at least four words", shortCut);
+}
 
 // ───────────────────────── result ─────────────────────────
 console.log("─".repeat(50));

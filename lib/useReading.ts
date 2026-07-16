@@ -36,6 +36,8 @@ interface ReadingResponse {
   transits?: TransitTiming | null;
   homeScore?: LocationScore | null;
   composite?: CompositeChart | null;
+  /** B1: one real-reading sentence, cut mid-clause, for the locked manifest. */
+  lead?: string;
 }
 
 const PROSE_TIMEOUT_MS = 118_000; // just under the route's maxDuration
@@ -84,6 +86,8 @@ export interface ReadingResult {
   transits: TransitTiming | null;
   homeScore: LocationScore | null;
   composite: CompositeChart | null;
+  /** The locked-manifest tease sentence (couple mode, unpaid visitors only). */
+  lead: string | null;
 }
 
 /** Server-confirmed gate + prose for the current reading. `req` must be
@@ -101,6 +105,7 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
   const [transits, setTransits] = useState<TransitTiming | null>(null);
   const [homeScore, setHomeScore] = useState<LocationScore | null>(null);
   const [composite, setComposite] = useState<CompositeChart | null>(null);
+  const [lead, setLead] = useState<string | null>(null);
   const runRef = useRef(0);
 
   const reqKey = req ? JSON.stringify([req.mode, req.a ?? null, req.b ?? null, req.locale]) : null;
@@ -113,9 +118,19 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
     setTransits(null);
     setHomeScore(null);
     setComposite(null);
+    setLead(null);
     if (!req || !ent) {
       setGate("locked");
       setProseLoading(false);
+      // B1: an unpaid couple still gets its one-sentence tease from the gate —
+      // the server decides what leaks, the client just renders it.
+      if (req && req.mode === "couple") {
+        (async () => {
+          const d = await callReading(req, false, GATE_TIMEOUT_MS);
+          if (myRun !== runRef.current) return;
+          if (d && !d.entitled && d.lead) setLead(d.lead);
+        })();
+      }
       return;
     }
     setGate("checking");
@@ -130,6 +145,7 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
       }
       if (!d || !d.entitled) {
         setGate("locked");
+        if (d?.lead) setLead(d.lead);
         return;
       }
       setGate("open");
@@ -157,5 +173,5 @@ export function useReading(req: ReadingRequest | null): ReadingResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reqKey, ent?.token]);
 
-  return { gate, prose, proseLoading, natalAnswers, places, transits, homeScore, composite };
+  return { gate, prose, proseLoading, natalAnswers, places, transits, homeScore, composite, lead };
 }
