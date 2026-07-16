@@ -2,6 +2,7 @@
 
 import { buildCheckoutUrl, newOrderRef, NEXT_KEY } from "@/lib/checkout";
 import { useT } from "./LocaleProvider";
+import { track } from "@/lib/track";
 
 /** Top-level redirect to the verified checkout domain. No iframe, no popup, so
  *  Apple Pay runs first-party exactly as it does today. `next` is the in-app
@@ -15,6 +16,7 @@ export default function CheckoutButton({
 }: { label?: string; priceLabel?: string; next?: string; title?: string }) {
   const t = useT();
   const go = () => {
+    track("cta_click"); // sendBeacon survives the redirect below
     const ref = newOrderRef();
     try { sessionStorage.setItem("am_pay_ref", ref); } catch { /* ignore */ }
     try { localStorage.setItem(NEXT_KEY, next && next.startsWith("/") ? next : "/"); } catch { /* ignore */ }

@@ -4,14 +4,21 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import ThemeFX from "@/components/ThemeFX";
 import UnlockOnReturn from "@/components/UnlockOnReturn";
+import Analytics from "@/components/Analytics";
 
 // metadataBase lets per-page relative OG image URLs (/api/og?...) resolve to
 // absolute URLs in link previews. Override via SITE_URL in production.
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || "https://astromatch.carecompass.me"),
-  title: "Astro-Love · Natal Chart",
+  title: {
+    default: "Astro-Love · Love Compatibility",
+    template: "%s · Astro-Love",
+  },
   description:
-    "Your real birth chart, computed from astronomy, the foundation of math-based love compatibility.",
+    "Math-based love compatibility from real synastry — every point explained.",
+  // Each route canonicalizes to itself on the primary domain (resolves
+  // against metadataBase), collapsing the Railway-subdomain duplicate.
+  alternates: { canonical: "./" },
 };
 
 export const viewport: Viewport = {
@@ -47,8 +54,19 @@ export default function RootLayout({
         <ThemeProvider>
           <ThemeFX />
           <LocaleProvider>
+            <Analytics />
             <UnlockOnReturn />
             {children}
+            <footer className="relative mx-auto max-w-3xl px-4 pb-8 pt-2 text-center text-[11px] text-haze/60 leading-relaxed">
+              <p>
+                For entertainment &amp; self-reflection — real astronomy, human interpretation.
+              </p>
+              <p className="mt-1">
+                <a href="/privacy/" className="text-gold/70 hover:text-gold underline underline-offset-4">Privacy</a>
+                <span className="mx-2">·</span>
+                <a href="/terms/" className="text-gold/70 hover:text-gold underline underline-offset-4">Terms</a>
+              </p>
+            </footer>
           </LocaleProvider>
         </ThemeProvider>
       </body>

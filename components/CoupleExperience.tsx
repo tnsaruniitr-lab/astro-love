@@ -28,6 +28,7 @@ import {
   type ArchetypeReading, type Thread, type SubscoreRead, type TendItem,
 } from "@/lib/astro/insights";
 import { buildShareCard, buildCaptions, encodeReading, type ShareCard } from "@/lib/astro/share";
+import { track } from "@/lib/track";
 import type { ChartFacts, ChartInput } from "@/lib/astro/types";
 
 const GLYPH_FONT =
@@ -132,6 +133,7 @@ export default function CoupleExperience({
       return;
     }
     try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
+    track("calculate");
 
     // Deliberate staged reveal — the "reading the sky" ritual. The math is done;
     // the pause builds anticipation. Honor reduced-motion with a short beat.
@@ -162,6 +164,7 @@ export default function CoupleExperience({
     setB(SAMPLE_B);
     setResult(compute(SAMPLE_A, SAMPLE_B));
     setRevealKey((k) => k + 1);
+    track("sample_view");
   }
 
   // Shared-link CTA: clear the sender's data and jump to a fresh form.
@@ -1338,6 +1341,7 @@ function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormVa
 
   const link = () => shareLink || legacyLink();
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
+  const share = (channel: string, go: () => void) => { track("share_click", { channel }); go(); };
   const text = caps.story;
 
   const channels = [
@@ -1372,10 +1376,10 @@ function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormVa
     <div className="mt-7">
       <div className="text-[10px] uppercase tracking-[0.24em] text-haze/85 mb-2.5">{t.compat.share.title}</div>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        {channels.map((ch) => (<Chip key={ch.key} onClick={ch.on}>{ch.label}</Chip>))}
-        <Chip onClick={() => copy("link", link())}>{copied === "link" ? t.compat.share.copied : t.compat.share.copyLink}</Chip>
+        {channels.map((ch) => (<Chip key={ch.key} onClick={() => share(ch.key, ch.on)}>{ch.label}</Chip>))}
+        <Chip onClick={() => share("copy_link", () => copy("link", link()))}>{copied === "link" ? t.compat.share.copied : t.compat.share.copyLink}</Chip>
         <Chip onClick={() => copy("caption", caps.story)}>{copied === "caption" ? t.compat.share.copied : t.compat.share.copyCaption}</Chip>
-        <Chip onClick={saveImage}>{t.compat.share.saveImage}</Chip>
+        <Chip onClick={() => share("image", saveImage)}>{t.compat.share.saveImage}</Chip>
       </div>
     </div>
   );

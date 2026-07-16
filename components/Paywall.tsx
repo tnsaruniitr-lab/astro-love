@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import CheckoutButton from "./CheckoutButton";
 import { useT } from "./LocaleProvider";
+import { track } from "@/lib/track";
 
 /** A named locked item on the paywall "receipt": the card's real title plus a
  *  personalized tease built ONLY from data the free tier already shows. */
@@ -31,6 +33,11 @@ export default function PaywallGate({
 }) {
   const t = useT();
   const hasManifest = manifest && manifest.length > 0;
+  useEffect(() => {
+    track("paywall_view", { items: manifest?.length ?? 0 });
+    // Once per mount is the honest count; item-count changes don't re-view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div className="relative overflow-hidden rounded-3xl border border-gold/15">
       {/* Content-free decoy shimmer (only when there is no named manifest). */}

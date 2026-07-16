@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { grantEntitlement } from "@/lib/entitlement";
 import { NEXT_KEY } from "@/lib/checkout";
+import { track } from "@/lib/track";
 
 type State = "checking" | "paid" | "cancel" | "unverified" | "error";
 
@@ -30,6 +31,7 @@ export default function PayReturn() {
           if (myRun !== runRef.current) return; // superseded by a newer run
           if (d.verified) {
             grantEntitlement({ ref: r, token: String(d.token ?? "") });
+            track("verified", { test: !!d.test });
             setTest(!!d.test);
             setState("paid");
             try { localStorage.removeItem(NEXT_KEY); } catch { /* ignore */ }
@@ -66,6 +68,7 @@ export default function PayReturn() {
     if (n.startsWith("/")) setNext(n);
 
     // The return params are only a trigger; never trust them for entitlement.
+    track("return_landed", { status: status ?? "none" });
     if (status && status !== "success") { setState("cancel"); return; }
     if (!r) { setState("error"); return; }
     verify(r);

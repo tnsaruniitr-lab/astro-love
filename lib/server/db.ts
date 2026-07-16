@@ -70,6 +70,16 @@ CREATE TABLE IF NOT EXISTS readings (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS readings_hash_idx ON readings (input_hash);
 CREATE INDEX IF NOT EXISTS readings_purchase_idx ON readings (purchase_ref);
+CREATE TABLE IF NOT EXISTS events (
+  id             bigserial PRIMARY KEY,
+  event          text NOT NULL,             -- allowlisted funnel step
+  props          jsonb,                     -- small, non-PII detail
+  locale         text,
+  path           text,
+  visitor        text,                      -- anonymous daily bucket, no raw IP/UA stored
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS events_event_time_idx ON events (event, created_at);
 `;
 
 async function ready(): Promise<Pool | null> {
@@ -165,6 +175,27 @@ export async function recordReading(rec: {
     );
   } catch (e) {
     console.error("[db] recordReading failed:", e instanceof Error ? e.message : e);
+  }
+}
+
+/** Append a funnel event. Fire-and-forget; no DB → no-op (the console line in
+ *  the track route is still emitted, so logs remain a fallback source). */
+export async function recordEvent(rec: {
+  event: string;
+  props?: unknown;
+  locale?: string | null;
+  path?: string | null;
+  visitor?: string | null;
+}): Promise<void> {
+  try {
+    const p = await ready();
+    if (!p) return;
+    await p.query(
+      `INSERT INTO events (event, props, locale, path, visitor) VALUES ($1,$2,$3,$4,$5)`,
+      [rec.event, rec.props != null ? JSON.stringify(rec.props) : null, rec.locale ?? null, rec.path ?? null, rec.visitor ?? null],
+    );
+  } catch (e) {
+    console.error("[db] recordEvent failed:", e instanceof Error ? e.message : e);
   }
 }
 

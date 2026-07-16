@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { readEntitlement, grantEntitlement } from "@/lib/entitlement";
+import { track } from "@/lib/track";
 
 // Makes a paid reading portable. Any link that carries ?paid=<ref> (handed out
 // on the success screen, savable / shareable) re-verifies that ref server-side
@@ -15,9 +16,15 @@ export default function UnlockOnReturn() {
     if (!ref) return;
 
     let done = false;
+    track("restore_landed");
     fetch(`/api/pay/verify/?ref=${encodeURIComponent(ref)}`)
       .then((r) => r.json())
-      .then((d) => { if (!done && d.verified && d.token) grantEntitlement({ ref, token: String(d.token) }); })
+      .then((d) => {
+        if (!done && d.verified && d.token) {
+          grantEntitlement({ ref, token: String(d.token) });
+          track("verified", { restore: true });
+        }
+      })
       .catch(() => { /* ignore; the gate simply stays up */ })
       .finally(() => { done = true; stripParam(); });
 

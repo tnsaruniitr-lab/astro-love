@@ -14,6 +14,7 @@ const LIMITS: Record<string, number> = {
   "/api/og": 120, // crawlers hit this; keep generous
   "/api/share": 60,
   "/api/pay/verify": 60,
+  "/api/track": 240, // tiny beacons; several fire per pageview
 };
 
 const hits = new Map<string, { count: number; resetAt: number }>();
@@ -23,7 +24,21 @@ function limitFor(path: string): number | null {
   return null;
 }
 
+// The Railway-generated subdomain serves the same app as the custom domain;
+// 301 it to the canonical host so search engines see one origin.
+const CANONICAL_HOST = "astromatch.carecompass.me";
+const REDIRECT_HOSTS = new Set(["astro-love-production.up.railway.app"]);
+
 export function middleware(req: NextRequest) {
+  const host = (req.headers.get("host") || "").toLowerCase().split(":")[0];
+  if (REDIRECT_HOSTS.has(host)) {
+    const url = req.nextUrl.clone();
+    url.protocol = "https:";
+    url.host = CANONICAL_HOST;
+    url.port = "";
+    return NextResponse.redirect(url, 301);
+  }
+
   const path = req.nextUrl.pathname;
   const limit = limitFor(path);
   if (limit === null) return NextResponse.next();
@@ -52,5 +67,7 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/reading/:path*", "/api/place/:path*", "/api/og/:path*", "/api/share/:path*", "/api/pay/verify/:path*"],
+  // Everything except Next internals/static assets: the host redirect must see
+  // every page; the rate limiter still self-selects via its LIMITS prefixes.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
