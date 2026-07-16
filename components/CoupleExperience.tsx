@@ -52,6 +52,18 @@ const ASPECT_GLYPH: Record<string, string> = {
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const COMPAT_KEY = "am_compat";
+// C4: the people roster. am_compat stays the ACTIVE couple (backward
+// compatible); am_couples is the saved list behind the picker.
+const COUPLES_KEY = "am_couples";
+interface SavedCouple { a: BirthFormValues; b: BirthFormValues; at: number }
+/** Identity ignores hour/minute/timeKnown so a birth-time correction REPLACES
+ *  the entry instead of duplicating the couple. */
+const coupleId = (x: { a: BirthFormValues; b: BirthFormValues }) =>
+  JSON.stringify([
+    x.a.name, x.a.year, x.a.month, x.a.day, x.a.place?.label ?? null,
+    x.b.name, x.b.year, x.b.month, x.b.day, x.b.place?.label ?? null,
+  ]);
+const ROSTER_CAP = 8;
 
 // The staged "reading the sky" ritual, played after the (instant) compute.
 const LOAD_STAGES = [
@@ -85,6 +97,17 @@ export default function CoupleExperience({
   // 0 = initial/SSR or restored result (show everything). Each Calculate bumps
   // this and remounts <Result> into the staged tap-to-reveal "ritual".
   const [revealKey, setRevealKey] = useState(0);
+  const [roster, setRoster] = useState<SavedCouple[]>([]);
+
+  const persistRoster = (list: SavedCouple[]) => {
+    setRoster(list);
+    try { localStorage.setItem(COUPLES_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+  };
+  const saveCouple = (fa: BirthFormValues, fb: BirthFormValues) => {
+    const entry: SavedCouple = { a: fa, b: fb, at: Date.now() };
+    const id = coupleId(entry);
+    persistRoster([entry, ...roster.filter((r) => coupleId(r) !== id)].slice(0, ROSTER_CAP));
+  };
 
   const compute = (fa: BirthFormValues, fb: BirthFormValues): CoupleResult => {
     const toInput = (f: BirthFormValues, who: string): ChartInput => {
@@ -108,11 +131,28 @@ export default function CoupleExperience({
   // Returning visitor: if there's no shared-link result, restore the last
   // reading this device computed (inputs are controlled, so just set them).
   useEffect(() => {
+    // Load (or migrate) the roster first — it exists even for share visitors.
+    let list: SavedCouple[] = [];
+    try {
+      const rawList = localStorage.getItem(COUPLES_KEY);
+      if (rawList) {
+        list = (JSON.parse(rawList) as SavedCouple[]).filter((r) => r?.a?.place && r?.b?.place);
+      } else {
+        const legacy = localStorage.getItem(COMPAT_KEY);
+        if (legacy) {
+          const saved = JSON.parse(legacy) as { a: BirthFormValues; b: BirthFormValues };
+          if (saved?.a?.place && saved?.b?.place) list = [{ a: saved.a, b: saved.b, at: Date.now() }];
+        }
+      }
+      if (list.length) { setRoster(list); try { localStorage.setItem(COUPLES_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
+    } catch { /* ignore a malformed roster */ }
+
     if (initialResult) return;
     try {
       const raw = localStorage.getItem(COMPAT_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as { a: BirthFormValues; b: BirthFormValues };
+      const saved = raw
+        ? (JSON.parse(raw) as { a: BirthFormValues; b: BirthFormValues })
+        : list[0] ?? null;
       if (!saved?.a?.place || !saved?.b?.place) return;
       setA(saved.a);
       setB(saved.b);
@@ -134,6 +174,7 @@ export default function CoupleExperience({
       return;
     }
     try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a, b })); } catch { /* ignore */ }
+    saveCouple(a, b);
     track("calculate");
 
     // Deliberate staged reveal — the "reading the sky" ritual. The math is done;
@@ -179,6 +220,24 @@ export default function CoupleExperience({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // C4: switch to a saved couple — instant compute, non-staged (the deck's
+  // async top-up keeps late premium cards face-up; see the revealed effect).
+  function selectCouple(sc: SavedCouple) {
+    setError(null);
+    setFromShare(false);
+    setA(sc.a);
+    setB(sc.b);
+    try {
+      setResult(compute(sc.a, sc.b));
+      try { localStorage.setItem(COMPAT_KEY, JSON.stringify({ a: sc.a, b: sc.b })); } catch { /* ignore */ }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    }
+  }
+  function removeCouple(id: string) {
+    persistRoster(roster.filter((r) => coupleId(r) !== id));
+  }
+
   return (
     <main className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
       <TopNav />
@@ -193,6 +252,29 @@ export default function CoupleExperience({
         </h1>
         <p className="text-haze mt-4 max-w-md mx-auto">{t.compat.subtitle}</p>
       </header>
+
+      {roster.length > 0 ? (
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-haze/70 mr-1">Your couples</span>
+          {roster.map((sc) => {
+            const id = coupleId(sc);
+            const active = id === coupleId({ a, b });
+            const uncertain = !sc.a.timeKnown || !sc.b.timeKnown;
+            return (
+              <span key={id} className={`inline-flex items-center rounded-full border ${active ? "border-gold/60 bg-gold/[0.12]" : "border-gold/25 bg-gold/[0.05]"} text-xs text-cream/90`}>
+                <button onClick={() => selectCouple(sc)} className="pl-3.5 py-1.5 hover:text-cream focus-visible:outline-none">
+                  {(sc.a.name || "You")} ♥ {(sc.b.name || "Them")}
+                  {uncertain && <span className="text-gold/75 ml-1" title="Birth time missing — the score is a range">±</span>}
+                </button>
+                <button onClick={() => removeCouple(id)} aria-label={`Remove ${sc.a.name || "You"} and ${sc.b.name || "Them"}`} className="px-2 py-1.5 text-haze/60 hover:text-rose/90 focus-visible:outline-none">×</button>
+              </span>
+            );
+          })}
+          <button onClick={startYours} className="rounded-full border border-cream/20 px-3.5 py-1.5 text-xs text-haze hover:text-cream hover:border-cream/40 transition-colors">
+            + compare someone new
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid md:grid-cols-2 gap-5 mt-10">
         <Panel label={t.compat.personA} accent={pal.personA}>
