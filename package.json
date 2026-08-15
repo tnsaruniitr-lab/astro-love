@@ -2,7 +2,7 @@
   "name": "astro-love",
   "version": "0.1.0",
   "private": true,
-  "description": "Astro-Love — synastry-first, math-explainable astrology love app (Milestone 1: natal engine + UX)",
+  "description": "Astro-Love \u2014 synastry-first, math-explainable astrology love app (Milestone 1: natal engine + UX)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +10,8 @@
     "lint": "next lint",
     "validate:engine": "tsx scripts/validate-engine.ts",
     "test:golden": "tsx scripts/golden-charts.ts",
-    "test": "npm run validate:engine && npm run test:golden"
+    "test": "npm run validate:engine && npm run test:golden",
+    "meta:insights": "tsx scripts/meta-insights.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
