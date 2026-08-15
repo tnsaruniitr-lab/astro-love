@@ -34,7 +34,7 @@ export const SK: UIStrings = {
     ]
   },
   "compat": {
-    "eyebrow": "Astro-Love · Kompatibilita",
+    "eyebrow": "AstroMatch · Kompatibilita",
     "h1a": "Zisti svoju kompatibilitu",
     "h1b": "s partnerom.",
     "subtitle": "Skutočná kompatibilita z vašich dvoch horoskopov. Každý bod vysvetlený.",
@@ -102,10 +102,10 @@ export const SK: UIStrings = {
       "copied": "Skopírované ✓"
     },
     "footer1": "Pre zábavu a sebareflexiu. Nenahrádza odbornú radu.",
-    "footer2": "Astro-Love · synastrické skórovanie · tropický zverokruh, domy celých znamení"
+    "footer2": "AstroMatch · synastrické skórovanie · tropický zverokruh, domy celých znamení"
   },
   "natal": {
-    "eyebrow": "Astro-Love",
+    "eyebrow": "AstroMatch",
     "h1a": "Obloha v okamihu,",
     "h1b": "keď si začal.",
     "subtitle": "Tvoj natálny horoskop, vypočítaný zo skutočnej astronómie, presný základ pre matematicky podloženú lásku a kompatibilitu.",
@@ -130,10 +130,10 @@ export const SK: UIStrings = {
     "askLove": "Opýtaj sa svojho horoskopu na lásku",
     "askLoveSub": "Skutočné odpovede z tvojich postavení, žiadne veštenie. Klepni na otázku.",
     "footer1": "Pre zábavu a sebareflexiu. Nenahrádza odbornú radu.",
-    "footer2": "Astro-Love · natálny engine + UX · tropický zverokruh, domy celých znamení"
+    "footer2": "AstroMatch · natálny engine + UX · tropický zverokruh, domy celých znamení"
   },
   "ll": {
-    "eyebrow": "Astro-Love · Jazyk lásky",
+    "eyebrow": "AstroMatch · Jazyk lásky",
     "h1a": "Ako",
     "h1b": "dávaš a prijímaš lásku.",
     "subtitle": "Rýchly, úprimný kvíz, bez údajov o narodení. Zistite, ako lásku cítite najviac.",
@@ -154,7 +154,7 @@ export const SK: UIStrings = {
       "translation": "Stojí za trochu prekladu"
     },
     "footer1": "Kvíz na sebareflexiu, oddelený od tvojho astrologického horoskopu.",
-    "footer2": "Astro-Love · Jazyk lásky"
+    "footer2": "AstroMatch · Jazyk lásky"
   },
   "pay": {
     "title": "Odomknite celé čítanie",

@@ -210,7 +210,7 @@ function ShareLang({ title }: { title: string }) {
   const t = useT();
   const [copied, setCopied] = useState(false);
   const link = () => (typeof window !== "undefined" ? `${window.location.origin}/love-language/` : "https://astro-love.app/love-language/");
-  const text = `My love language is ${title}. What's yours? Find out on Astro-Love.`;
+  const text = `My love language is ${title}. What's yours? Find out on AstroMatch.`;
   const open = (u: string) => window.open(u, "_blank", "noopener,noreferrer");
   const copy = async () => { try { await navigator.clipboard.writeText(`${text} ${link()}`); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ } };
 

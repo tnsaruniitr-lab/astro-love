@@ -1499,14 +1499,14 @@ function ShareRow({ syn, forms }: { syn: SynastryResult; forms: { a: BirthFormVa
     canvas.toBlob((blob) => {
       if (!blob) return;
       const nav = navigator as Navigator & { canShare?: (d: unknown) => boolean; share?: (d: unknown) => Promise<void> };
-      const file = new File([blob], "astro-love.png", { type: "image/png" });
+      const file = new File([blob], "astromatch.png", { type: "image/png" });
       if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
         nav.share({ files: [file], text: caps.oneLiner }).catch(() => { /* user cancelled */ });
         return;
       }
       const url = URL.createObjectURL(blob);
       const aEl = document.createElement("a");
-      aEl.href = url; aEl.download = "astro-love.png"; aEl.click();
+      aEl.href = url; aEl.download = "astromatch.png"; aEl.click();
       URL.revokeObjectURL(url);
     }, "image/png");
   };
@@ -1562,7 +1562,7 @@ function drawShareCanvas(card: ShareCard): HTMLCanvasElement {
   };
 
   x.textAlign = "center";
-  x.fillStyle = "#e7ad94"; x.font = "600 34px Georgia, serif"; x.fillText("✦  ASTRO-LOVE  ✦", W / 2, 150);
+  x.fillStyle = "#e7ad94"; x.font = "600 34px Georgia, serif"; x.fillText("✦  ASTROMATCH  ✦", W / 2, 150);
   x.fillStyle = "#f4e0e3"; x.font = "italic 66px Georgia, serif"; x.fillText(card.title, W / 2, 300);
   x.fillStyle = "#f3c9b0"; x.font = "700 240px Georgia, serif"; x.fillText(card.scoreLine.split(" ")[0], W / 2, 640);
   x.fillStyle = "#c99aa6"; x.font = "500 38px Georgia, serif"; x.fillText(`/ 100   ·   ${card.bandLabel}`, W / 2, 712);

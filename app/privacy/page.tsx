@@ -5,7 +5,7 @@ import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "What Astro-Love stores, where your birth data lives, and how to erase it.",
+  description: "What AstroMatch stores, where your birth data lives, and how to erase it.",
 };
 
 const UPDATED = "16 July 2026";
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         <p className="mt-1 text-xs text-haze/60">Last updated {UPDATED}</p>
 
         <p className="mt-5">
-          Astro-Love is built so that the most sensitive thing you give it — birth details — stays
+          AstroMatch is built so that the most sensitive thing you give it — birth details — stays
           with you. This page says plainly what is processed, where, and how to erase it.
         </p>
 
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
 
         <H>Who we are</H>
         <p>
-          Astro-Love is operated by the CareCompass team. Questions about this policy:{" "}
+          AstroMatch is operated by the CareCompass team. Questions about this policy:{" "}
           <a className="text-gold/85 hover:text-gold underline underline-offset-4" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
         </p>
       </article>

@@ -1,4 +1,4 @@
-// Interpretation copy registers for Astro-Love synastry readings.
+// Interpretation copy registers for AstroMatch synastry readings.
 //
 // Voice contract: a knowing friend who is also rigorous. Every line must be
 // falsifiable for a different sign or element; if a sentence could describe

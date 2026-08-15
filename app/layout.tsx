@@ -11,8 +11,8 @@ import Analytics from "@/components/Analytics";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || "https://astromatch.carecompass.me"),
   title: {
-    default: "Astro-Love · Love Compatibility",
-    template: "%s · Astro-Love",
+    default: "AstroMatch · Love Compatibility",
+    template: "%s · AstroMatch",
   },
   description:
     "Math-based love compatibility from real synastry — every point explained.",

@@ -34,7 +34,7 @@ export const PL: UIStrings = {
     ]
   },
   "compat": {
-    "eyebrow": "Astro-Love · Dopasowanie",
+    "eyebrow": "AstroMatch · Dopasowanie",
     "h1a": "Sprawdź swoje dopasowanie",
     "h1b": "z partnerem.",
     "subtitle": "Prawdziwe dopasowanie z waszych dwóch kosmogramów. Każdy punkt wyjaśniony.",
@@ -102,10 +102,10 @@ export const PL: UIStrings = {
       "copied": "Skopiowano ✓"
     },
     "footer1": "Dla rozrywki i autorefleksji. Nie zastępuje porady specjalisty.",
-    "footer2": "Astro-Love · ocena synastrii · zodiak tropikalny, domy znakowe"
+    "footer2": "AstroMatch · ocena synastrii · zodiak tropikalny, domy znakowe"
   },
   "natal": {
-    "eyebrow": "Astro-Love",
+    "eyebrow": "AstroMatch",
     "h1a": "Niebo w chwili,",
     "h1b": "gdy się zaczęłaś.",
     "subtitle": "Twój kosmogram, obliczony z prawdziwej astronomii, precyzyjny fundament miłości i dopasowania opartych na matematyce.",
@@ -130,10 +130,10 @@ export const PL: UIStrings = {
     "askLove": "Zapytaj swój kosmogram o miłość",
     "askLoveSub": "Prawdziwe odpowiedzi z Twoich pozycji, bez wróżenia. Dotknij pytania.",
     "footer1": "Dla rozrywki i autorefleksji. Nie zastępuje porady specjalisty.",
-    "footer2": "Astro-Love · silnik kosmogramu + UX · zodiak tropikalny, domy znakowe"
+    "footer2": "AstroMatch · silnik kosmogramu + UX · zodiak tropikalny, domy znakowe"
   },
   "ll": {
-    "eyebrow": "Astro-Love · Język miłości",
+    "eyebrow": "AstroMatch · Język miłości",
     "h1a": "Jak",
     "h1b": "dajesz i przyjmujesz miłość.",
     "subtitle": "Szybki, szczery quiz, bez danych urodzenia. Odkryj, jak najmocniej czujesz miłość.",
@@ -154,7 +154,7 @@ export const PL: UIStrings = {
       "translation": "Warte odrobiny tłumaczenia"
     },
     "footer1": "Quiz do autorefleksji, niezależny od Twojego kosmogramu.",
-    "footer2": "Astro-Love · Język miłości"
+    "footer2": "AstroMatch · Język miłości"
   },
   "pay": {
     "title": "Odblokuj pełny odczyt",

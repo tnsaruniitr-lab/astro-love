@@ -29,7 +29,7 @@ export function buildShareCard(syn: SynastryResult): ShareCard {
     archetypeName: arch.name,
     archetypeLine: arch.line,
     threadLine: thread ? thread.aspect.headline : syn.band.blurb,
-    footer: "Astro-Love · see your own match free",
+    footer: "AstroMatch · see your own match free",
   };
 }
 
@@ -38,8 +38,8 @@ export function buildCaptions(syn: SynastryResult): ShareCaptions {
   const thread = strongestThread(syn);
   const t = thread ? ` Strongest thread, ${thread.aspect.headline}` : "";
   return {
-    oneLiner: `${syn.names.a} and ${syn.names.b} scored ${syn.score} of 100, a ${syn.band.label}. Check yours free on Astro-Love.`,
-    story: `${syn.names.a} and ${syn.names.b}: ${syn.score} of 100, ${syn.band.label}. Our couple type, ${arch.name}.${t} Check yours free on Astro-Love.`,
+    oneLiner: `${syn.names.a} and ${syn.names.b} scored ${syn.score} of 100, a ${syn.band.label}. Check yours free on AstroMatch.`,
+    story: `${syn.names.a} and ${syn.names.b}: ${syn.score} of 100, ${syn.band.label}. Our couple type, ${arch.name}.${t} Check yours free on AstroMatch.`,
     hashtags: "#AstroLove #synastry #compatibility",
   };
 }

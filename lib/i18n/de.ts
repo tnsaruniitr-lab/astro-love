@@ -34,7 +34,7 @@ export const DE: UIStrings = {
     ]
   },
   "compat": {
-    "eyebrow": "Astro-Love · Kompatibilität",
+    "eyebrow": "AstroMatch · Kompatibilität",
     "h1a": "Prüfe eure Kompatibilität",
     "h1b": "mit deinem Partner.",
     "subtitle": "Echte Kompatibilität aus euren beiden Geburtshoroskopen. Jeder Punkt erklärt.",
@@ -102,10 +102,10 @@ export const DE: UIStrings = {
       "copied": "Kopiert ✓"
     },
     "footer1": "Zur Unterhaltung & Selbstreflexion. Kein Ersatz für professionelle Beratung.",
-    "footer2": "Astro-Love · Synastrie-Bewertung · tropischer Tierkreis, Ganzzeichen-Häuser"
+    "footer2": "AstroMatch · Synastrie-Bewertung · tropischer Tierkreis, Ganzzeichen-Häuser"
   },
   "natal": {
-    "eyebrow": "Astro-Love",
+    "eyebrow": "AstroMatch",
     "h1a": "Der Himmel in dem Moment,",
     "h1b": "in dem du begannst.",
     "subtitle": "Dein Geburtshoroskop, berechnet aus echter Astronomie – die präzise Grundlage für mathematisch fundierte Liebe und Kompatibilität.",
@@ -130,10 +130,10 @@ export const DE: UIStrings = {
     "askLove": "Frag dein Horoskop nach der Liebe",
     "askLoveSub": "Echte Antworten aus deinen Stellungen, keine Wahrsagerei. Tippe auf eine Frage.",
     "footer1": "Zur Unterhaltung & Selbstreflexion. Kein Ersatz für professionelle Beratung.",
-    "footer2": "Astro-Love · Geburts-Engine + UX · tropischer Tierkreis, Ganzzeichen-Häuser"
+    "footer2": "AstroMatch · Geburts-Engine + UX · tropischer Tierkreis, Ganzzeichen-Häuser"
   },
   "ll": {
-    "eyebrow": "Astro-Love · Sprache der Liebe",
+    "eyebrow": "AstroMatch · Sprache der Liebe",
     "h1a": "Wie du",
     "h1b": "Liebe gibst & empfängst.",
     "subtitle": "Ein kurzer, ehrlicher Test, ohne Geburtsdaten. Finde heraus, wie du Liebe am stärksten spürst.",
@@ -154,7 +154,7 @@ export const DE: UIStrings = {
       "translation": "Etwas Übersetzung wert"
     },
     "footer1": "Ein Quiz zur Selbstreflexion, getrennt von deinem Astrologie-Horoskop.",
-    "footer2": "Astro-Love · Sprache der Liebe"
+    "footer2": "AstroMatch · Sprache der Liebe"
   },
   "pay": {
     "title": "Vollständige Deutung freischalten",

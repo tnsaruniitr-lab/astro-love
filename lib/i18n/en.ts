@@ -15,7 +15,7 @@ export const EN: UIStrings = {
   },
 
   compat: {
-    eyebrow: "Astro-Love · Compatibility",
+    eyebrow: "AstroMatch · Compatibility",
     h1a: "Check your compatibility", h1b: "with your partner.",
     subtitle: "Real compatibility from your two birth charts. Every point explained.",
     empty: "Enter both birthdays to see your match.",
@@ -49,11 +49,11 @@ export const EN: UIStrings = {
     shineTitle: "Where you shine", youShine: "You shine", oneToTend: "One thing to tend",
     share: { title: "Share your score", copyLink: "Copy link", copyCaption: "Copy caption", saveImage: "Save image", copied: "Copied ✓" },
     footer1: "For entertainment & self-reflection. Not a substitute for professional advice.",
-    footer2: "Astro-Love · synastry scoring · tropical zodiac, whole-sign houses",
+    footer2: "AstroMatch · synastry scoring · tropical zodiac, whole-sign houses",
   },
 
   natal: {
-    eyebrow: "Astro-Love",
+    eyebrow: "AstroMatch",
     h1a: "The sky at the moment", h1b: "you began.",
     subtitle: "Your natal chart, computed from real astronomy, the precise foundation for math-based love and compatibility.",
     empty: "Enter your birth details to see your chart.",
@@ -68,11 +68,11 @@ export const EN: UIStrings = {
     askLove: "Ask your chart about love",
     askLoveSub: "Real answers from your placements, no fortune telling. Tap a question.",
     footer1: "For entertainment & self-reflection. Not a substitute for professional advice.",
-    footer2: "Astro-Love · natal engine + UX · tropical zodiac, whole-sign houses",
+    footer2: "AstroMatch · natal engine + UX · tropical zodiac, whole-sign houses",
   },
 
   ll: {
-    eyebrow: "Astro-Love · Love Language",
+    eyebrow: "AstroMatch · Love Language",
     h1a: "How you", h1b: "give & receive love.",
     subtitle: "A quick, honest quiz, no birth data needed. Find the way you most feel loved.",
     questionOf: "Question {n} of {total}", back: "Back",
@@ -84,7 +84,7 @@ export const EN: UIStrings = {
     howYouPairSub: "When your {lang} meets someone who speaks…",
     levels: { effortless: "Effortless", naturalFit: "Natural fit", translation: "Worth a little translation" },
     footer1: "A self-reflection quiz, separate from your astrology chart.",
-    footer2: "Astro-Love · Love language",
+    footer2: "AstroMatch · Love language",
   },
 
   pay: {

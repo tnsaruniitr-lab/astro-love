@@ -69,7 +69,7 @@ export async function GET(req: Request) {
       >
         <div style={{ display: "flex", width: 120, height: 4, background: "#be2e50", borderRadius: 4, marginBottom: 34 }} />
         <div style={{ display: "flex", fontSize: 30, letterSpacing: 8, color: "#e7ad94", textTransform: "uppercase" }}>
-          Astro-Love
+          AstroMatch
         </div>
         <div style={{ display: "flex", fontSize: 66, fontStyle: "italic", marginTop: 22, textAlign: "center" }}>
           {`${names.a} & ${names.b}`}

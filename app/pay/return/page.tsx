@@ -128,7 +128,7 @@ export default function PayReturn() {
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           {state === "paid"
             ? <Link href={next} className="btn-gold px-7 py-2.5 text-sm">Open my full reading →</Link>
-            : <Link href="/" className="btn-gold px-7 py-2.5 text-sm">← Back to Astro-Love</Link>}
+            : <Link href="/" className="btn-gold px-7 py-2.5 text-sm">← Back to AstroMatch</Link>}
           {canRecheck && (
             <button
               onClick={() => verify(ref)}
@@ -151,7 +151,7 @@ function KeepLink({ url }: { url: string }) {
   const copy = async () => {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ }
   };
-  const mail = `mailto:?subject=${encodeURIComponent("My Astro-Love reading")}&body=${encodeURIComponent(`Here's my full reading, unlocked: ${url}`)}`;
+  const mail = `mailto:?subject=${encodeURIComponent("My AstroMatch reading")}&body=${encodeURIComponent(`Here's my full reading, unlocked: ${url}`)}`;
   return (
     <div className="mt-7 pt-6 border-t border-cream/10 text-left">
       <div className="text-[10px] uppercase tracking-[0.24em] text-haze/85 mb-2 text-center">Keep your reading</div>

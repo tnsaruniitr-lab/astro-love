@@ -9,7 +9,7 @@ import { decodeShare } from "@/lib/server/sharetoken";
 import type { BirthFormValues } from "@/components/BirthFields";
 import type { ChartInput } from "@/lib/astro/types";
 
-const BASE_TITLE = "Astro-Love · Love Compatibility";
+const BASE_TITLE = "AstroMatch · Love Compatibility";
 const BASE_DESC = "Math-based love compatibility from real synastry, every point explained.";
 
 // A fresh visitor starts with empty panels, no sample reading. Neutral date so
@@ -51,7 +51,7 @@ export function generateMetadata({ searchParams }: { searchParams?: { r?: string
     );
     const arch = coupleArchetype(syn);
     const title = `${syn.names.a} & ${syn.names.b} — ${syn.score}/100`;
-    const desc = `${syn.band.label}. Couple type: ${arch.name}. See your own match free on Astro-Love.`;
+    const desc = `${syn.band.label}. Couple type: ${arch.name}. See your own match free on AstroMatch.`;
     const img = `/api/og/?${ogParam}`;
     return {
       title,

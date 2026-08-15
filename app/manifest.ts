@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Astro-Love — Love Compatibility",
-    short_name: "Astro-Love",
+    name: "AstroMatch — Love Compatibility",
+    short_name: "AstroMatch",
     description:
       "Math-based love compatibility from real synastry — every point explained.",
     start_url: "/",

@@ -34,7 +34,7 @@ export const ES: UIStrings = {
     ]
   },
   "compat": {
-    "eyebrow": "Astro-Love · Compatibilidad",
+    "eyebrow": "AstroMatch · Compatibilidad",
     "h1a": "Descubre tu compatibilidad",
     "h1b": "con tu pareja.",
     "subtitle": "Compatibilidad real a partir de vuestras dos cartas natales. Cada punto explicado.",
@@ -102,10 +102,10 @@ export const ES: UIStrings = {
       "copied": "Copiado ✓"
     },
     "footer1": "Para entretenimiento y autorreflexión. No sustituye el consejo profesional.",
-    "footer2": "Astro-Love · puntuación de sinastría · zodíaco tropical, casas de signo entero"
+    "footer2": "AstroMatch · puntuación de sinastría · zodíaco tropical, casas de signo entero"
   },
   "natal": {
-    "eyebrow": "Astro-Love",
+    "eyebrow": "AstroMatch",
     "h1a": "El cielo en el instante",
     "h1b": "en que empezaste.",
     "subtitle": "Tu carta natal, calculada con astronomía real: la base precisa para un amor y una compatibilidad basados en las matemáticas.",
@@ -130,10 +130,10 @@ export const ES: UIStrings = {
     "askLove": "Pregúntale a tu carta sobre el amor",
     "askLoveSub": "Respuestas reales desde tus posiciones, sin adivinación. Toca una pregunta.",
     "footer1": "Para entretenimiento y autorreflexión. No sustituye el consejo profesional.",
-    "footer2": "Astro-Love · motor natal + UX · zodíaco tropical, casas de signo entero"
+    "footer2": "AstroMatch · motor natal + UX · zodíaco tropical, casas de signo entero"
   },
   "ll": {
-    "eyebrow": "Astro-Love · Lenguaje del amor",
+    "eyebrow": "AstroMatch · Lenguaje del amor",
     "h1a": "Cómo",
     "h1b": "das y recibes amor.",
     "subtitle": "Un test rápido y honesto, sin datos de nacimiento. Descubre cómo sientes más el amor.",
@@ -154,7 +154,7 @@ export const ES: UIStrings = {
       "translation": "Merece un poco de traducción"
     },
     "footer1": "Un test de autorreflexión, independiente de tu carta astrológica.",
-    "footer2": "Astro-Love · Lenguaje del amor"
+    "footer2": "AstroMatch · Lenguaje del amor"
   },
   "pay": {
     "title": "Desbloquea la lectura completa",

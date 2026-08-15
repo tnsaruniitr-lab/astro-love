@@ -4,7 +4,7 @@ import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata: Metadata = {
   title: "Terms",
-  description: "The terms of using Astro-Love: entertainment framing, purchases, refunds.",
+  description: "The terms of using AstroMatch: entertainment framing, purchases, refunds.",
 };
 
 const UPDATED = "16 July 2026";
@@ -21,7 +21,7 @@ export default function TermsPage() {
         <h1 className="font-display text-3xl text-cream">Terms of use</h1>
         <p className="mt-1 text-xs text-haze/60">Last updated {UPDATED}</p>
 
-        <H>What Astro-Love is — and isn&apos;t</H>
+        <H>What AstroMatch is — and isn&apos;t</H>
         <p>
           The planetary positions we show are real, computed astronomy. The interpretations built on
           them — scores, archetypes, readings — are <strong>for entertainment and
@@ -58,7 +58,7 @@ export default function TermsPage() {
         <H>Liability</H>
         <p>
           To the extent the law allows, our liability for anything arising from the use of
-          Astro-Love is limited to the amount you paid us. Nothing here limits liability that
+          AstroMatch is limited to the amount you paid us. Nothing here limits liability that
           cannot legally be limited.
         </p>
 
