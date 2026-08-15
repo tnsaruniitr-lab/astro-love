@@ -164,6 +164,13 @@ export const SK: UIStrings = {
     "natal": "Otvorte všetky odpovede, ktoré váš horoskop ukrýva o láske, s presnými polohami za každou.",
     "love": "Zistite, ako sa hodíte ku každému inému jazyku lásky, o čo žiadať a čo hovorí veda."
   },
+  "consent": {
+    "title": "Reklamné súbory cookie",
+    "body": "Radi by sme používali reklamné súbory cookie od Meta na meranie našich reklám. Bez vášho súhlasu sa nenastaví nič a vaše výklady fungujú tak či tak.",
+    "accept": "Prijať", "decline": "Odmietnuť", "privacy": "Súkromie",
+    "stateOn": "Reklamné cookie: prijaté.", "stateOff": "Reklamné cookie: odmietnuté.",
+    "stateUnset": "Reklamné cookie: zatiaľ nezvolené.", "withdraw": "Odvolať"
+  },
   "reading": {
     "ease": "Ľahkosť", "intensity": "Intenzita",
     "axesExplain": "Ľahkosť ukazuje, kam sa vaše kontakty prikláňajú; intenzita — koľko sa medzi vami deje.",

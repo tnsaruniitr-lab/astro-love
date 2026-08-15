@@ -164,6 +164,13 @@ export const PL: UIStrings = {
     "natal": "Otwórz każdą odpowiedź, którą twój kosmogram kryje o miłości, z dokładnymi pozycjami za każdą z nich.",
     "love": "Zobacz, jak pasujesz do każdego innego języka miłości, o co prosić i co mówi nauka."
   },
+  "consent": {
+    "title": "Reklamowe pliki cookie",
+    "body": "Chcielibyśmy używać reklamowych plików cookie Meta, aby mierzyć skuteczność naszych reklam. Bez Twojej zgody nic nie zostanie zapisane, a odczyty działają tak czy owak.",
+    "accept": "Akceptuję", "decline": "Odrzucam", "privacy": "Prywatność",
+    "stateOn": "Reklamowe cookie: zaakceptowane.", "stateOff": "Reklamowe cookie: odrzucone.",
+    "stateUnset": "Reklamowe cookie: brak wyboru.", "withdraw": "Wycofaj"
+  },
   "reading": {
     "ease": "Łatwość", "intensity": "Intensywność",
     "axesExplain": "Łatwość pokazuje, w którą stronę skłaniają się wasze kontakty; intensywność — jak wiele się między wami dzieje.",

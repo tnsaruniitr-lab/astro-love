@@ -86,6 +86,12 @@ export interface UIStrings {
     compat: string; natal: string; love: string;
   };
 
+
+  consent: {
+    title: string; body: string; accept: string; decline: string; privacy: string;
+    stateOn: string; stateOff: string; stateUnset: string; withdraw: string;
+  };
+
   reading: {
     ease: string; intensity: string; axesExplain: string;
     scoreRange: string; // "…{min}–{max}…"

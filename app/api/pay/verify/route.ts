@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { mintEntitlement } from "@/lib/server/entitlement";
 import { recordPurchase } from "@/lib/server/db";
+import { sendMetaEvent } from "@/lib/server/meta";
+import { parseConsent, CONSENT_COOKIE } from "@/lib/consent";
 
 // Server-side verification of a payment by its order ref. The return query
 // string is only a trigger; entitlement is decided here — FAIL-CLOSED.
@@ -25,6 +27,13 @@ import { recordPurchase } from "@/lib/server/db";
 //   CARECOMPASS_EXPECT_PRODUCT  expected product (default astromatch)
 //   ENTITLEMENT_SECRET          HMAC secret for minted tokens
 //   ALLOW_TEST_UNLOCK=1         grant WITHOUT a real check (local testing only)
+//
+// This route is also where the Meta `Purchase` conversion is reported. It is
+// sent from HERE, server-side, and never from a browser thank-you page: this is
+// the only point where a payment is actually confirmed, and browser-fired
+// purchases lose 20–40% of real sales to closed tabs, blockers and redirects.
+// It is emitted once per ref (the ledger's first-insert flag), with a stable
+// event_id so a re-verify can't be counted as a second sale.
 
 export const dynamic = "force-dynamic";
 
@@ -74,19 +83,38 @@ export async function GET(req: Request) {
     // echoes from the Apple Pay/Razorpay flow). Fire-and-forget — the ledger
     // must never block or fail a verification.
     if (verified) {
-      void recordPurchase({
-        ref,
-        product: expectProduct,
-        amount: typeof data.amount === "number" ? data.amount : Number(data.amount) || null,
-        currency: data.currency != null ? String(data.currency) : null,
-        paymentId: data.payment_id != null ? String(data.payment_id) : null,
-        orderId: data.order_id != null ? String(data.order_id) : null,
-        // Buyer identity — only present when CARECOMPASS_VERIFY_TOKEN is set on
-        // both sides (the upstream returns it to authenticated callers only).
-        email: data.email != null ? String(data.email) : null,
-        contact: data.contact != null ? String(data.contact) : null,
-        name: data.name != null ? String(data.name) : null,
-      });
+      const amountMinor = typeof data.amount === "number" ? data.amount : Number(data.amount) || null;
+      const email = data.email != null ? String(data.email) : null;
+      const contact = data.contact != null ? String(data.contact) : null;
+
+      void (async () => {
+        const ledger = await recordPurchase({
+          ref,
+          product: expectProduct,
+          amount: amountMinor,
+          currency: data.currency != null ? String(data.currency) : null,
+          paymentId: data.payment_id != null ? String(data.payment_id) : null,
+          orderId: data.order_id != null ? String(data.order_id) : null,
+          // Buyer identity — only present when CARECOMPASS_VERIFY_TOKEN is set on
+          // both sides (the upstream returns it to authenticated callers only).
+          email,
+          contact,
+          name: data.name != null ? String(data.name) : null,
+        });
+
+        // Report the sale once. With no DB the ledger can't tell us whether
+        // this ref is new, so we still send and let the stable event_id
+        // deduplicate it inside Meta's window.
+        if (ledger.ledger && !ledger.first) return;
+        await reportPurchase(req, {
+          ref,
+          amountMinor: amountMinor ?? Number(process.env.CARECOMPASS_EXPECT_AMOUNT ?? 200),
+          currency: (data.currency != null ? String(data.currency) : expectCurrency).toUpperCase(),
+          product: expectProduct,
+          email,
+          contact,
+        });
+      })();
     }
 
     // Keep polling only while the payment hasn't landed yet; a paid-but-
@@ -113,4 +141,47 @@ export async function GET(req: Request) {
     // Network/parse hiccup — let the client retry.
     return NextResponse.json({ verified: false, pending: true, reason: "verify_error", ref }, { status: 502 });
   }
+}
+
+/** Meta `Purchase`, server-side and idempotent per payment ref.
+ *
+ *  The verify call is made by the buyer's own browser right after checkout, so
+ *  this request carries their IP, user agent and — when the pixel is consented —
+ *  the _fbp/_fbc identifiers, which is what makes the match quality usable. The
+ *  buyer's email is hashed by the sender; it never leaves as cleartext.
+ *
+ *  Skipped entirely without marketing consent: the same cookie that gates the
+ *  pixel gates this. */
+async function reportPurchase(
+  req: Request,
+  p: { ref: string; amountMinor: number; currency: string; product: string; email: string | null; contact: string | null },
+): Promise<void> {
+  const cookies = req.headers.get("cookie") || "";
+  const readCookie = (name: string): string | null => {
+    const m = cookies.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+    return m ? decodeURIComponent(m[1]) : null;
+  };
+  if (parseConsent(readCookie(CONSENT_COOKIE)) !== "granted") return;
+
+  await sendMetaEvent({
+    eventName: "Purchase",
+    // Stable per payment: a re-verify (or the same ref opened on a second
+    // device) resolves to the same id, so Meta collapses it, not double-counts.
+    eventId: `purchase_${p.ref}`,
+    actionSource: "website",
+    customData: {
+      value: Number((p.amountMinor / 100).toFixed(2)),
+      currency: p.currency,
+      content_name: p.product,
+      order_id: p.ref,
+    },
+    user: {
+      email: p.email,
+      phone: p.contact,
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+      userAgent: req.headers.get("user-agent"),
+      fbp: readCookie("_fbp"),
+      fbc: readCookie("_fbc"),
+    },
+  });
 }

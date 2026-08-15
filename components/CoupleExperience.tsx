@@ -194,6 +194,9 @@ export default function CoupleExperience({
     setRevealKey((k) => k + 1);
     setLoading(false);
     setLoadStage(0);
+    // The score card is on screen now — the moment worth optimising ads for
+    // (`calculate` above fires ~3s earlier, before the reveal ritual ends).
+    track("result_view");
   }
 
   // Let a cold visitor feel the wow-moment before entering two full birth

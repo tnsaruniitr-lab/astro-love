@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTheme } from "./ThemeProvider";
 import { useT, useLocale } from "./LocaleProvider";
 import { useReading } from "@/lib/useReading";
+import { track } from "@/lib/track";
 import TopNav from "./TopNav";
 import LoveLangIcon from "./LoveLangIcon";
 import PaywallGate from "./Paywall";
@@ -32,7 +33,12 @@ export default function LoveLanguageQuiz() {
     }
   }, [answers]);
 
-  const pick = (m: Mode) => setAnswers((a) => [...a, m]);
+  // Fire on the answer that COMPLETES the quiz, not on `done` — a restored
+  // quiz (localStorage, e.g. returning from checkout) is not a fresh lead.
+  const pick = (m: Mode) => {
+    if (answers.length + 1 === QUESTIONS.length) track("quiz_complete");
+    setAnswers((a) => [...a, m]);
+  };
   const back = () => setAnswers((a) => a.slice(0, -1));
   const reset = () => { setAnswers([]); try { localStorage.removeItem("am_ll_answers"); } catch { /* ignore */ } };
 

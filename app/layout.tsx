@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import ThemeFX from "@/components/ThemeFX";
 import UnlockOnReturn from "@/components/UnlockOnReturn";
 import Analytics from "@/components/Analytics";
+import MetaPixel from "@/components/MetaPixel";
+import { ConsentBanner } from "@/components/Consent";
 
 // metadataBase lets per-page relative OG image URLs (/api/og?...) resolve to
 // absolute URLs in link previews. Override via SITE_URL in production.
@@ -19,6 +22,11 @@ export const metadata: Metadata = {
   // Each route canonicalizes to itself on the primary domain (resolves
   // against metadataBase), collapsing the Railway-subdomain duplicate.
   alternates: { canonical: "./" },
+  // Meta domain verification (Business settings → Brand safety → Domains).
+  // Set META_DOMAIN_VERIFICATION to the token Meta shows, deploy, then Verify.
+  ...(process.env.META_DOMAIN_VERIFICATION
+    ? { other: { "facebook-domain-verification": process.env.META_DOMAIN_VERIFICATION } }
+    : {}),
 };
 
 export const viewport: Viewport = {
@@ -55,6 +63,11 @@ export default function RootLayout({
           <ThemeFX />
           <LocaleProvider>
             <Analytics />
+            {/* MetaPixel reads search params, which opts its subtree into
+                client rendering — Suspense keeps that boundary local. */}
+            <Suspense fallback={null}>
+              <MetaPixel />
+            </Suspense>
             <UnlockOnReturn />
             {children}
             <footer className="relative mx-auto max-w-3xl px-4 pb-8 pt-2 text-center text-[11px] text-haze/60 leading-relaxed">
@@ -69,6 +82,7 @@ export default function RootLayout({
                 <a href="mailto:support@carecompass.me" className="text-gold/70 hover:text-gold underline underline-offset-4">Contact</a>
               </p>
             </footer>
+            <ConsentBanner />
           </LocaleProvider>
         </ThemeProvider>
       </body>

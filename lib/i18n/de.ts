@@ -164,6 +164,13 @@ export const DE: UIStrings = {
     "natal": "Öffne jede Antwort, die dein Chart über die Liebe bereithält, mit den genauen Stellungen dahinter.",
     "love": "Sieh, wie du zu jeder anderen Sprache der Liebe passt, worum du bitten solltest und was die Wissenschaft sagt."
   },
+  "consent": {
+    "title": "Werbe-Cookies",
+    "body": "Wir würden gern Werbe-Cookies von Meta einsetzen, um unsere Anzeigen zu messen. Ohne Ihre Zustimmung wird nichts gesetzt, und Ihre Auswertungen funktionieren so oder so.",
+    "accept": "Akzeptieren", "decline": "Ablehnen", "privacy": "Datenschutz",
+    "stateOn": "Werbe-Cookies: akzeptiert.", "stateOff": "Werbe-Cookies: abgelehnt.",
+    "stateUnset": "Werbe-Cookies: noch nicht gewählt.", "withdraw": "Widerrufen"
+  },
   "reading": {
     "ease": "Leichtigkeit", "intensity": "Intensität",
     "axesExplain": "Leichtigkeit zeigt, wohin eure Kontakte neigen; Intensität, wie viel zwischen euch passiert.",

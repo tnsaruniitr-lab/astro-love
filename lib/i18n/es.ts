@@ -164,6 +164,13 @@ export const ES: UIStrings = {
     "natal": "Abre cada respuesta que tu carta guarda sobre el amor, con las posiciones exactas detrás de cada una.",
     "love": "Descubre cómo encajas con cada otro lenguaje del amor, qué pedir y qué dice la ciencia."
   },
+  "consent": {
+    "title": "Cookies publicitarias",
+    "body": "Nos gustaría usar las cookies publicitarias de Meta para medir nuestros anuncios. No se instala nada sin tu consentimiento, y tus lecturas funcionan igual.",
+    "accept": "Aceptar", "decline": "Rechazar", "privacy": "Privacidad",
+    "stateOn": "Cookies publicitarias: aceptadas.", "stateOff": "Cookies publicitarias: rechazadas.",
+    "stateUnset": "Cookies publicitarias: sin elegir.", "withdraw": "Retirar"
+  },
   "reading": {
     "ease": "Fluidez", "intensity": "Intensidad",
     "axesExplain": "La fluidez muestra hacia dónde se inclinan sus contactos; la intensidad, cuánto sucede entre ustedes.",

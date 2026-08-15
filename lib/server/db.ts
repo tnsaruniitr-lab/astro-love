@@ -104,7 +104,12 @@ async function ready(): Promise<Pool | null> {
 }
 
 /** Record (or re-record) a verified payment. Idempotent on ref; re-verifies
- *  bump redeem_count so unusual replay patterns are visible in the ledger. */
+ *  bump redeem_count so unusual replay patterns are visible in the ledger.
+ *
+ *  Returns `{ ledger, first }`: `ledger` is false when there is no DB, and
+ *  `first` is true only for the INSERT (redeem_count still 1). Callers use it
+ *  to do first-payment-only work — notably sending the Meta Purchase event —
+ *  without counting a re-verify or a restore as a second sale. */
 export async function recordPurchase(rec: {
   ref: string;
   product: string;
@@ -115,11 +120,11 @@ export async function recordPurchase(rec: {
   email?: string | null;
   contact?: string | null;
   name?: string | null;
-}): Promise<void> {
+}): Promise<{ ledger: boolean; first: boolean }> {
   try {
     const p = await ready();
-    if (!p) return;
-    await p.query(
+    if (!p) return { ledger: false, first: false };
+    const r = await p.query<{ redeem_count: number }>(
       `INSERT INTO purchases (ref, product, amount, currency, payment_id, order_id, email, contact, name)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        ON CONFLICT (ref) DO UPDATE
@@ -129,12 +134,15 @@ export async function recordPurchase(rec: {
              order_id = COALESCE(purchases.order_id, EXCLUDED.order_id),
              email = COALESCE(EXCLUDED.email, purchases.email),
              contact = COALESCE(EXCLUDED.contact, purchases.contact),
-             name = COALESCE(EXCLUDED.name, purchases.name)`,
+             name = COALESCE(EXCLUDED.name, purchases.name)
+       RETURNING redeem_count`,
       [rec.ref, rec.product, rec.amount ?? null, rec.currency ?? null, rec.paymentId ?? null, rec.orderId ?? null,
        rec.email ?? null, rec.contact ?? null, rec.name ?? null],
     );
+    return { ledger: true, first: Number(r.rows[0]?.redeem_count) === 1 };
   } catch (e) {
     console.error("[db] recordPurchase failed:", e instanceof Error ? e.message : e);
+    return { ledger: false, first: false };
   }
 }
 

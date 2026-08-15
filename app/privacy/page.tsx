@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import TopNav from "@/components/TopNav";
 import ClearDataButton from "@/components/ClearDataButton";
+import { ConsentSettings } from "@/components/Consent";
 import { SUPPORT_EMAIL } from "@/lib/support";
 
 export const metadata: Metadata = {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   description: "What AstroMatch stores, where your birth data lives, and how to erase it.",
 };
 
-const UPDATED = "16 July 2026";
+const UPDATED = "15 August 2026";
 
 function H({ children }: { children: React.ReactNode }) {
   return <h2 className="font-display text-xl text-cream mt-8 mb-2">{children}</h2>;
@@ -55,8 +56,16 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Usage counts.</strong> We count anonymous product events (a reading was
-            computed, a card was opened) with no cookies, no advertising identifiers, and no
-            cross-site tracking.
+            computed, a card was opened). These use no cookies and no advertising identifiers.
+          </li>
+          <li>
+            <strong>Advertising measurement — only if you accept.</strong> If you accept
+            advertising cookies, we load Meta&apos;s pixel and report a few milestones (a page
+            view, a result viewed, a quiz finished, a checkout started, a completed purchase) to
+            Meta so we can tell which ads actually work. The purchase is reported from our server;
+            where your payment provider passes us an email or phone number, it is hashed before it
+            is sent — Meta receives the hash, never the address itself. Decline and none of this
+            runs.
           </li>
         </ul>
 
@@ -65,6 +74,14 @@ export default function PrivacyPage() {
           A compatibility reading involves someone else&apos;s birth data. Enter it only with their
           knowledge and consent, and use share links thoughtfully — the reading names both of you.
         </p>
+
+        <H>Advertising cookies</H>
+        <p>
+          Off until you accept, and you can change your mind here at any time. Withdrawing also
+          expires Meta&apos;s <code>_fbp</code>/<code>_fbc</code> identifiers on this device and
+          stops the server-side reporting.
+        </p>
+        <ConsentSettings />
 
         <H>Erasing your data</H>
         <p>

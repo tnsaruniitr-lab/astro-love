@@ -95,6 +95,14 @@ export const EN: UIStrings = {
     natal: "Open every answer your chart holds about love, with the exact placements behind each one.",
     love: "See how you pair with every other love language, what to ask for, and the science behind it.",
   },
+  consent: {
+    title: "Advertising cookies",
+    body: "We'd like to use Meta's advertising cookies to measure our ads. Nothing is set unless you accept, and your readings work either way.",
+    accept: "Accept", decline: "Decline", privacy: "Privacy",
+    stateOn: "Advertising cookies: accepted.", stateOff: "Advertising cookies: declined.",
+    stateUnset: "Advertising cookies: not chosen yet.", withdraw: "Withdraw",
+  },
+
   reading: {
     ease: "Ease", intensity: "Intensity",
     axesExplain: "Ease shows which way your contacts lean; intensity shows how much is going on between you.",

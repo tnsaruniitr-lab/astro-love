@@ -15,6 +15,7 @@ const LIMITS: Record<string, number> = {
   "/api/share": 60,
   "/api/pay/verify": 60,
   "/api/track": 240, // tiny beacons; several fire per pageview
+  "/api/meta-capi": 120, // ad-platform conversions; a handful per session
 };
 
 const hits = new Map<string, { count: number; resetAt: number }>();

@@ -21,6 +21,7 @@ const ALLOWED = new Set([
   "verified",
   "restore_landed",
   "share_click",
+  "result_view",
   "quiz_complete",
 ]);
 
