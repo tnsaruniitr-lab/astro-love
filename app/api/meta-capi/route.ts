@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     user: {
       ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
       userAgent: req.headers.get("user-agent"),
+      externalId: req.cookies.get("am_vid")?.value ?? null,
       fbp: req.cookies.get("_fbp")?.value ?? null,
       fbc: req.cookies.get("_fbc")?.value ?? null,
     },

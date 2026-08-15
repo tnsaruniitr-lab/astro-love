@@ -62,7 +62,10 @@ export default function PrivacyPage() {
             <strong>Advertising measurement — only if you accept.</strong> If you accept
             advertising cookies, we load Meta&apos;s pixel and report a few milestones (a page
             view, a result viewed, a quiz finished, a checkout started, a completed purchase) to
-            Meta so we can tell which ads actually work. The purchase is reported from our server;
+            Meta so we can tell which ads actually work. We also set a random id of our own
+            (<code>am_vid</code>) so those reports describe one visitor rather than a guess from
+            IP address and browser string; it is a random number, tied to nothing else about you.
+            The purchase is reported from our server;
             where your payment provider passes us an email or phone number, it is hashed before it
             is sent — Meta receives the hash, never the address itself. Decline and none of this
             runs.

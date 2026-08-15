@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FB_PIXEL_ID } from "@/lib/meta";
 import { CONSENT_EVENT, readConsent } from "@/lib/consent";
+import { getVisitorId } from "@/lib/visitor";
 
 /** Meta pixel loader + PageView reporter.
  *
@@ -22,12 +23,19 @@ export default function MetaPixel() {
   const pathname = usePathname();
   const search = useSearchParams();
   const [granted, setGranted] = useState(false);
+  const [vid, setVid] = useState<string | null>(null);
   // The last path already counted. Seeded (not fired) the first time the pixel
   // becomes live, because the inline snippet counts that view itself.
   const counted = useRef<string | null>(null);
 
   useEffect(() => {
-    const sync = () => setGranted(readConsent() === "granted");
+    const sync = () => {
+      const ok = readConsent() === "granted";
+      setGranted(ok);
+      // Minted here, before the snippet renders, so the pixel's init carries
+      // the same visitor id the server sends as external_id.
+      setVid(ok ? getVisitorId() : null);
+    };
     sync();
     window.addEventListener(CONSENT_EVENT, sync);
     return () => window.removeEventListener(CONSENT_EVENT, sync);
@@ -51,6 +59,14 @@ export default function MetaPixel() {
 
   if (!FB_PIXEL_ID || !granted) return null;
 
+  // Advanced matching. Meta hashes this in the browser; the server hashes the
+  // same raw value, so the two legs resolve to one visitor. Belt-and-braces
+  // sanitising: this string is interpolated into an inline script.
+  const safeVid = vid && /^[A-Za-z0-9-]{1,64}$/.test(vid) ? vid : null;
+  const initArgs = safeVid
+    ? `'${FB_PIXEL_ID}',{external_id:'${safeVid}'}`
+    : `'${FB_PIXEL_ID}'`;
+
   return (
     <>
       <Script id="fb-pixel" strategy="afterInteractive">{`
@@ -59,7 +75,7 @@ n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init','${FB_PIXEL_ID}');
+fbq('init',${initArgs});
 fbq('track','PageView');
       `}</Script>
       <noscript>

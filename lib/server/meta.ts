@@ -24,6 +24,9 @@ export function hashPii(value: string): string {
 export interface MetaUserData {
   email?: string | null;
   phone?: string | null;
+  /** Our own first-party visitor id (raw; hashed here). Carries the match when
+   *  Meta's _fbp is blocked — see lib/visitor.ts. */
+  externalId?: string | null;
   ip?: string | null;
   userAgent?: string | null;
   fbp?: string | null;
@@ -47,6 +50,7 @@ function buildUserData(u: MetaUserData): Record<string, unknown> {
     const digits = u.phone.replace(/[^\d]/g, "");
     if (digits) d.ph = [hashPii(digits)];
   }
+  if (u.externalId) d.external_id = [hashPii(u.externalId)];
   if (u.ip) d.client_ip_address = u.ip;
   if (u.userAgent) d.client_user_agent = u.userAgent;
   if (u.fbp) d.fbp = u.fbp;

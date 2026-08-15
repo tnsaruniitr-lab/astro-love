@@ -35,7 +35,11 @@ export function writeConsent(value: "granted" | "denied"): void {
     const secure = location.protocol === "https:" ? "; Secure" : "";
     document.cookie = `${CONSENT_COOKIE}=${value}; path=/; max-age=${CONSENT_MAX_AGE}; SameSite=Lax${secure}`;
     // Withdrawing consent must also drop the identifiers already set.
-    if (value === "denied") clearMetaCookies();
+    if (value === "denied") {
+      clearMetaCookies();
+      // Ours as well as Meta's — a first-party id is still an identifier.
+      document.cookie = "am_vid=; path=/; max-age=0";
+    }
     window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: value }));
   } catch {
     /* consent UI must never break the product */

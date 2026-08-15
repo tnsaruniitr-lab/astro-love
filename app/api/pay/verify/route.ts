@@ -180,6 +180,7 @@ async function reportPurchase(
       phone: p.contact,
       ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
       userAgent: req.headers.get("user-agent"),
+      externalId: readCookie("am_vid"),
       fbp: readCookie("_fbp"),
       fbc: readCookie("_fbc"),
     },
