@@ -22,7 +22,9 @@ export default function MetaPixel() {
   const pathname = usePathname();
   const search = useSearchParams();
   const [granted, setGranted] = useState(false);
-  const firstRun = useRef(true);
+  // The last path already counted. Seeded (not fired) the first time the pixel
+  // becomes live, because the inline snippet counts that view itself.
+  const counted = useRef<string | null>(null);
 
   useEffect(() => {
     const sync = () => setGranted(readConsent() === "granted");
@@ -32,11 +34,18 @@ export default function MetaPixel() {
   }, []);
 
   useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false; // the inline snippet already counted this one
+    if (!granted) return;
+    const key = `${pathname}?${search}`;
+    // Seed on the first granted render: that view belongs to the snippet.
+    // A plain "skip the first run" guard is NOT enough here — `granted` is a
+    // dependency, so the pre-consent render burns the skip and the
+    // consent-flip render then races the snippet to fire the same PageView.
+    // Keying on the path makes the outcome independent of which wins.
+    if (counted.current === null || counted.current === key) {
+      counted.current = key;
       return;
     }
-    if (!granted) return;
+    counted.current = key;
     window.fbq?.("track", "PageView");
   }, [pathname, search, granted]);
 
