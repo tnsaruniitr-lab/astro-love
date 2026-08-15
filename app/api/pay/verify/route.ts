@@ -3,6 +3,7 @@ import { mintEntitlement } from "@/lib/server/entitlement";
 import { recordPurchase } from "@/lib/server/db";
 import { sendMetaEvent } from "@/lib/server/meta";
 import { parseConsent, CONSENT_COOKIE } from "@/lib/consent";
+import { buildFbc, parseAttrCookie } from "@/lib/server/fbc";
 
 // Server-side verification of a payment by its order ref. The return query
 // string is only a trigger; entitlement is decided here — FAIL-CLOSED.
@@ -86,6 +87,10 @@ export async function GET(req: Request) {
       const amountMinor = typeof data.amount === "number" ? data.amount : Number(data.amount) || null;
       const email = data.email != null ? String(data.email) : null;
       const contact = data.contact != null ? String(data.contact) : null;
+      // The verify call is made by the buyer's own browser, so her first-touch
+      // campaign cookie is on this request — this is the one moment where the
+      // ad that bought the click and the cash it produced are in the same place.
+      const attr = parseAttrCookie(cookieFrom(req, "am_attr"));
 
       void (async () => {
         const ledger = await recordPurchase({
@@ -100,6 +105,7 @@ export async function GET(req: Request) {
           email,
           contact,
           name: data.name != null ? String(data.name) : null,
+          attr: Object.keys(attr).length ? attr : null,
         });
 
         // Report the sale once. With no DB the ledger can't tell us whether
@@ -113,6 +119,7 @@ export async function GET(req: Request) {
           product: expectProduct,
           email,
           contact,
+          attr,
         });
       })();
     }
@@ -154,13 +161,12 @@ export async function GET(req: Request) {
  *  pixel gates this. */
 async function reportPurchase(
   req: Request,
-  p: { ref: string; amountMinor: number; currency: string; product: string; email: string | null; contact: string | null },
+  p: {
+    ref: string; amountMinor: number; currency: string; product: string;
+    email: string | null; contact: string | null; attr: Record<string, unknown>;
+  },
 ): Promise<void> {
-  const cookies = req.headers.get("cookie") || "";
-  const readCookie = (name: string): string | null => {
-    const m = cookies.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-    return m ? decodeURIComponent(m[1]) : null;
-  };
+  const readCookie = (name: string) => cookieFrom(req, name);
   if (parseConsent(readCookie(CONSENT_COOKIE)) !== "granted") return;
 
   await sendMetaEvent({
@@ -182,7 +188,15 @@ async function reportPurchase(
       userAgent: req.headers.get("user-agent"),
       externalId: readCookie("am_vid"),
       fbp: readCookie("_fbp"),
-      fbc: readCookie("_fbc"),
+      fbc:
+        readCookie("_fbc") ??
+        buildFbc(p.attr.fbclid as string | undefined, p.attr.ts as number | undefined),
     },
   });
+}
+
+/** Read one cookie off an incoming Request. */
+function cookieFrom(req: Request, name: string): string | null {
+  const m = (req.headers.get("cookie") || "").match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : null;
 }

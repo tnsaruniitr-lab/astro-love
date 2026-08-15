@@ -80,6 +80,14 @@ CREATE TABLE IF NOT EXISTS events (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS events_event_time_idx ON events (event, created_at);
+-- Campaign attribution (additive; no-op once present). Stored as jsonb because
+-- the useful keys differ per channel, and indexed on the two that every
+-- spend-vs-revenue query filters by.
+ALTER TABLE events ADD COLUMN IF NOT EXISTS attr jsonb;
+CREATE INDEX IF NOT EXISTS events_attr_campaign_idx ON events ((attr->>'cmp'), created_at);
+CREATE INDEX IF NOT EXISTS events_attr_ad_idx ON events ((attr->>'adid'), created_at);
+ALTER TABLE purchases ADD COLUMN IF NOT EXISTS attr jsonb;
+CREATE INDEX IF NOT EXISTS purchases_attr_campaign_idx ON purchases ((attr->>'cmp'));
 `;
 
 async function ready(): Promise<Pool | null> {
@@ -120,13 +128,15 @@ export async function recordPurchase(rec: {
   email?: string | null;
   contact?: string | null;
   name?: string | null;
+  /** Which ad bought this sale — the revenue half of spend-vs-revenue. */
+  attr?: unknown;
 }): Promise<{ ledger: boolean; first: boolean }> {
   try {
     const p = await ready();
     if (!p) return { ledger: false, first: false };
     const r = await p.query<{ redeem_count: number }>(
-      `INSERT INTO purchases (ref, product, amount, currency, payment_id, order_id, email, contact, name)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO purchases (ref, product, amount, currency, payment_id, order_id, email, contact, name, attr)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (ref) DO UPDATE
          SET redeem_count = purchases.redeem_count + 1,
              last_redeemed = now(),
@@ -134,10 +144,11 @@ export async function recordPurchase(rec: {
              order_id = COALESCE(purchases.order_id, EXCLUDED.order_id),
              email = COALESCE(EXCLUDED.email, purchases.email),
              contact = COALESCE(EXCLUDED.contact, purchases.contact),
-             name = COALESCE(EXCLUDED.name, purchases.name)
+             name = COALESCE(EXCLUDED.name, purchases.name),
+             attr = COALESCE(purchases.attr, EXCLUDED.attr)
        RETURNING redeem_count`,
       [rec.ref, rec.product, rec.amount ?? null, rec.currency ?? null, rec.paymentId ?? null, rec.orderId ?? null,
-       rec.email ?? null, rec.contact ?? null, rec.name ?? null],
+       rec.email ?? null, rec.contact ?? null, rec.name ?? null, rec.attr != null ? JSON.stringify(rec.attr) : null],
     );
     return { ledger: true, first: Number(r.rows[0]?.redeem_count) === 1 };
   } catch (e) {
@@ -193,14 +204,16 @@ export async function recordEvent(rec: {
   props?: unknown;
   locale?: string | null;
   path?: string | null;
+  attr?: unknown;
   visitor?: string | null;
 }): Promise<void> {
   try {
     const p = await ready();
     if (!p) return;
     await p.query(
-      `INSERT INTO events (event, props, locale, path, visitor) VALUES ($1,$2,$3,$4,$5)`,
-      [rec.event, rec.props != null ? JSON.stringify(rec.props) : null, rec.locale ?? null, rec.path ?? null, rec.visitor ?? null],
+      `INSERT INTO events (event, props, locale, path, attr, visitor) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [rec.event, rec.props != null ? JSON.stringify(rec.props) : null, rec.locale ?? null, rec.path ?? null,
+       rec.attr != null ? JSON.stringify(rec.attr) : null, rec.visitor ?? null],
     );
   } catch (e) {
     console.error("[db] recordEvent failed:", e instanceof Error ? e.message : e);

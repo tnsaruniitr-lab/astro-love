@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
-  const b = body as { e?: unknown; p?: unknown; l?: unknown; path?: unknown };
+  const b = body as { e?: unknown; p?: unknown; l?: unknown; path?: unknown; a?: unknown };
   const event = typeof b.e === "string" ? b.e : "";
   if (!ALLOWED.has(event)) return NextResponse.json({ error: "invalid_input" }, { status: 400 });
 
@@ -56,11 +56,19 @@ export async function POST(req: NextRequest) {
   const locale = typeof b.l === "string" ? b.l.slice(0, 8) : null;
   const path = typeof b.path === "string" ? b.path.slice(0, 128) : null;
 
+  // Campaign attribution: which ad bought this event. Bounded like props —
+  // this is a public endpoint and must not become a free-form data sink.
+  let attr: Record<string, unknown> | undefined;
+  if (b.a && typeof b.a === "object" && !Array.isArray(b.a)) {
+    const raw = JSON.stringify(b.a);
+    if (raw.length <= 512) attr = b.a as Record<string, unknown>;
+  }
+
   // Single greppable log line — the zero-infra fallback when there is no DB.
   console.log(`[track] ${event} path=${path ?? "-"} locale=${locale ?? "-"} props=${props ? JSON.stringify(props) : "-"}`);
 
   // Fire-and-forget; the beacon never waits on Postgres.
-  void recordEvent({ event, props, locale, path, visitor: visitorBucket(req) });
+  void recordEvent({ event, props, locale, path, attr, visitor: visitorBucket(req) });
 
   return new NextResponse(null, { status: 204 });
 }

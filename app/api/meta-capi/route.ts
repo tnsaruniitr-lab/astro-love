@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseConsent, CONSENT_COOKIE } from "@/lib/consent";
 import { sendMetaEvent, capiConfigured } from "@/lib/server/meta";
+import { buildFbc, parseAttrCookie } from "@/lib/server/fbc";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,14 @@ export async function POST(req: NextRequest) {
       ? (body.customData as Record<string, unknown>)
       : {};
 
+  // When the pixel is blocked, Meta never writes _fbc — but we kept the fbclid
+  // at landing, so the click can still be named. This is the strongest match
+  // signal available for exactly the visitor the server leg exists to recover.
+  const attr = parseAttrCookie(req.cookies.get("am_attr")?.value);
+  const fbc =
+    req.cookies.get("_fbc")?.value ??
+    buildFbc(attr.fbclid as string | undefined, attr.ts as number | undefined);
+
   const result = await sendMetaEvent({
     eventName,
     eventId,
@@ -70,7 +79,7 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get("user-agent"),
       externalId: req.cookies.get("am_vid")?.value ?? null,
       fbp: req.cookies.get("_fbp")?.value ?? null,
-      fbc: req.cookies.get("_fbc")?.value ?? null,
+      fbc,
     },
   });
 

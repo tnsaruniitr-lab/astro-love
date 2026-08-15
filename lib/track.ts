@@ -6,6 +6,7 @@
 // funnel step has exactly one call site and one consent gate.
 
 import { metaEvent } from "./meta";
+import { captureAttribution, readAttribution } from "./attribution";
 
 export type TrackEvent =
   | "page_view"
@@ -45,11 +46,14 @@ const META_MAP: Partial<Record<TrackEvent, { event: string; data: Record<string,
 export function track(event: TrackEvent, props?: Record<string, string | number | boolean>) {
   if (typeof window === "undefined") return;
   try {
+    // Cheap and idempotent: first touch wins, so this only writes once.
+    const attr = captureAttribution() ?? readAttribution();
     const body = JSON.stringify({
       e: event,
       p: props,
       l: document.documentElement.getAttribute("lang") || undefined,
       path: window.location.pathname,
+      a: attr ?? undefined,
     });
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/track/", new Blob([body], { type: "application/json" }));
