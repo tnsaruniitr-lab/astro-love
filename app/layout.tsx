@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
@@ -8,6 +9,7 @@ import UnlockOnReturn from "@/components/UnlockOnReturn";
 import Analytics from "@/components/Analytics";
 import MetaPixel from "@/components/MetaPixel";
 import { ConsentBanner } from "@/components/Consent";
+import { LOCALE_CODES, isRtl, type Locale } from "@/lib/i18n";
 
 // metadataBase lets per-page relative OG image URLs (/api/og?...) resolve to
 // absolute URLs in link previews. Override via SITE_URL in production.
@@ -36,16 +38,25 @@ export const viewport: Viewport = {
 
 // Apply the saved theme before first paint to avoid a flash.
 // Velvet Rouge is the signature default; a saved choice still wins.
-const BOOT = `(function(){try{var ok=['night','dawn','velvet','peony','twilight'];var t=localStorage.getItem('astro-theme');if(ok.indexOf(t)<0)t='velvet';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','velvet');}
-try{var L=['en','ru','uk','sk','pl','de','es','ar'];var l=localStorage.getItem('astro-locale');if(L.indexOf(l)<0)l='en';document.documentElement.setAttribute('lang',l);document.documentElement.setAttribute('dir',l==='ar'?'rtl':'ltr');}catch(e){}})();`;
+const BOOT = `(function(){try{var ok=['night','dawn','velvet','peony','twilight'];var t=localStorage.getItem('astro-theme');if(ok.indexOf(t)<0)t='velvet';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','velvet');}})();`;
+// The locale half of this script is gone on purpose: lang/dir are now rendered
+// server-side from the middleware-resolved locale, so there is nothing left to
+// correct before first paint.
+
+/** Locale chosen by the middleware for this request (see withLocale there). */
+function requestLocale(): Locale {
+  const h = headers().get("x-astro-locale");
+  return h && (LOCALE_CODES as string[]).includes(h) ? (h as Locale) : "en";
+}
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = requestLocale();
   return (
-    <html lang="en" data-theme="velvet">
+    <html lang={locale} dir={isRtl(locale) ? "rtl" : "ltr"} data-theme="velvet">
       <head>
         <script dangerouslySetInnerHTML={{ __html: BOOT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -61,7 +72,7 @@ export default function RootLayout({
         <div className="starfield" />
         <ThemeProvider>
           <ThemeFX />
-          <LocaleProvider>
+          <LocaleProvider initial={locale}>
             <Analytics />
             {/* MetaPixel reads search params, which opts its subtree into
                 client rendering — Suspense keeps that boundary local. */}

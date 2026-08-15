@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useT } from "./LocaleProvider";
 import { CONSENT_EVENT, readConsent, writeConsent, type Consent } from "@/lib/consent";
+import { consentRequired } from "@/lib/geo/consentRegion";
 import { FB_PIXEL_ID } from "@/lib/meta";
 
 /** Opt-in bar for advertising cookies. Shown only while the decision is unset,
  *  and only when there is actually a pixel to gate. Declining is one tap and
- *  as prominent as accepting — a pre-ticked or hidden "no" is not consent. */
+ *  as prominent as accepting — a pre-ticked or hidden "no" is not consent.
+ *
+ *  Scope: the banner appears where prior opt-in is the law (EU/EEA/UK/CH — see
+ *  lib/geo/consentRegion). Everywhere else the pixel loads by default and the
+ *  visitor can still opt out on the privacy page. Asking a visitor in Kyiv or
+ *  Almaty to consent under a European rule that does not cover her costs real
+ *  measurement and protects nobody. */
 export function ConsentBanner() {
   const t = useT();
   const [state, setState] = useState<Consent | null>(null); // null until hydrated
@@ -20,7 +27,14 @@ export function ConsentBanner() {
     return () => window.removeEventListener(CONSENT_EVENT, sync);
   }, []);
 
-  if (!FB_PIXEL_ID || state === null || state !== "unset") return null;
+  // Outside the opt-in regions, record the default once so the server routes
+  // (which only see the cookie) reach the same conclusion as the browser.
+  useEffect(() => {
+    if (!FB_PIXEL_ID || state !== "unset") return;
+    if (!consentRequired()) writeConsent("granted");
+  }, [state]);
+
+  if (!FB_PIXEL_ID || state === null || state !== "unset" || !consentRequired()) return null;
 
   return (
     <div

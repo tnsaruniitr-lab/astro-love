@@ -77,9 +77,11 @@ export default function PrivacyPage() {
 
         <H>Advertising cookies</H>
         <p>
-          Off until you accept, and you can change your mind here at any time. Withdrawing also
-          expires Meta&apos;s <code>_fbp</code>/<code>_fbc</code> identifiers on this device and
-          stops the server-side reporting.
+          In the EU, EEA, UK and Switzerland these stay off until you accept — you&apos;ll see a
+          banner asking. Elsewhere they are on by default and you can switch them off here.
+          Either way this control is the whole story: withdrawing expires Meta&apos;s{" "}
+          <code>_fbp</code>/<code>_fbc</code> identifiers on this device and stops the
+          server-side reporting too.
         </p>
         <ConsentSettings />
 
