@@ -79,7 +79,8 @@ export default function PrivacyPage() {
 
         <H>Who we are</H>
         <p>
-          AstroMatch is operated by the CareCompass team. Questions about this policy:{" "}
+          AstroMatch is operated by Dreamport Technology Pvt Ltd (the team behind CareCompass).
+          Questions about this policy:{" "}
           <a className="text-gold/85 hover:text-gold underline underline-offset-4" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
         </p>
       </article>

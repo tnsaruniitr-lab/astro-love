@@ -65,6 +65,8 @@ export default function RootLayout({
                 <a href="/privacy/" className="text-gold/70 hover:text-gold underline underline-offset-4">Privacy</a>
                 <span className="mx-2">·</span>
                 <a href="/terms/" className="text-gold/70 hover:text-gold underline underline-offset-4">Terms</a>
+                <span className="mx-2">·</span>
+                <a href="mailto:support@carecompass.me" className="text-gold/70 hover:text-gold underline underline-offset-4">Contact</a>
               </p>
             </footer>
           </LocaleProvider>

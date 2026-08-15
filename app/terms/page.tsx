@@ -62,6 +62,12 @@ export default function TermsPage() {
           cannot legally be limited.
         </p>
 
+        <H>Who we are</H>
+        <p>
+          AstroMatch is operated by Dreamport Technology Pvt Ltd (the team behind CareCompass).
+          Payments are processed by our payment provider via pay.carecompass.me.
+        </p>
+
         <H>Changes</H>
         <p>
           If these terms change materially, the date above changes with them, and continued use
